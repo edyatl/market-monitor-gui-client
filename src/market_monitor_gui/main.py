@@ -1,29 +1,51 @@
 """Application entry point.
 
-Intentionally free of UI imports: the Tk toolkit is only imported once the
-CustomTkinter shell exists (screens batch), so that command-line diagnostics and
-the unit test suite never require a display.
+``--version`` stays free of UI imports so diagnostics work without a display. The
+CustomTkinter shell (and thus Tk) is imported only when the GUI is launched.
 """
 
-from pydantic import ValidationError
+from __future__ import annotations
+
+import argparse
+import sys
+from collections.abc import Sequence
 
 from market_monitor_gui import __version__
-from market_monitor_gui.config.settings import AppSettings
-from market_monitor_gui.config.urls import DEFAULT_API_BASE_URL
+from market_monitor_gui.texts import ru
 
 
-def main() -> None:
-    """Run the GUI application.
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="market-monitor-gui")
+    parser.add_argument("--version", action="store_true", help="print version and exit")
+    return parser
 
-    The CustomTkinter shell is wired in a later batch; until then this prints a
-    short identity line so ``python -m market_monitor_gui`` is verifiable.
-    """
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the GUI, or print the version when ``--version`` is given."""
+    args = _build_parser().parse_args(argv)
+    if args.version:
+        print(f"{ru.APP_NAME} {__version__}")
+        return 0
+    return _run_gui()
+
+
+def _run_gui() -> int:
+    import tkinter as tk
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+
+    context = AppContext.create()
     try:
-        origin = AppSettings().api_base_url
-    except ValidationError:
-        origin = DEFAULT_API_BASE_URL
-    print(f"Market Monitor {__version__} API={origin}")
+        shell = Shell(context)
+    except tk.TclError:
+        print(ru.ERR_NO_DISPLAY, file=sys.stderr)
+        context.close()
+        return 2
+    shell.start()
+    shell.mainloop()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
