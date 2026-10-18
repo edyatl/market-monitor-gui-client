@@ -118,6 +118,12 @@ pretty = true
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
 
+# CustomTkinter ships no type information, so its widget classes are ``Any``. Only the
+# UI package subclasses them; keep the rest of the tree on full strict checking.
+[[tool.mypy.overrides]]
+module = ["market_monitor_gui.ui", "market_monitor_gui.ui.*"]
+disallow_subclassing_any = false
+
 [tool.pytest.ini_options]
 testpaths = [
     "tests",
