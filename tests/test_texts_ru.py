@@ -1,0 +1,84 @@
+"""G1: the Russian text registry."""
+
+from __future__ import annotations
+
+import re
+
+import pytest
+
+from market_monitor_gui.texts import ru
+
+pytestmark = pytest.mark.unit
+
+_CYRILLIC = re.compile(r"[\u0400-\u04ff]")
+
+
+def test_text_for_returns_registered_value() -> None:
+    assert ru.text_for("ACTION_RETRY") == ru.ACTION_RETRY
+
+
+def test_text_for_unknown_key_raises_keyerror_naming_the_key() -> None:
+    with pytest.raises(KeyError) as excinfo:
+        ru.text_for("DOES_NOT_EXIST")
+    assert "DOES_NOT_EXIST" in str(excinfo.value)
+
+
+def test_registry_excludes_meta_constants() -> None:
+    assert "TEXT_KEYS" not in ru.TEXT_KEYS
+    assert "EMPTY_PLACEHOLDERS" not in ru.TEXT_KEYS
+
+
+def test_placeholders_are_registered_and_empty() -> None:
+    assert ru.EMPTY_PLACEHOLDERS  # non-empty set
+    for key in ru.EMPTY_PLACEHOLDERS:
+        assert key in ru.TEXT_KEYS, f"placeholder {key} is not a registered text key"
+        assert ru.TEXT_KEYS[key] == "", f"placeholder {key} must stay empty for now"
+
+
+def test_every_error_constant_is_registered_and_russian() -> None:
+    error_keys = [name for name in ru.TEXT_KEYS if name.startswith("ERR_")]
+    assert error_keys, "no ERR_* text keys registered"
+    for name in error_keys:
+        assert _CYRILLIC.search(ru.TEXT_KEYS[name]), f"{name} must contain Russian text"
+
+
+def test_required_error_keys_exist() -> None:
+    required = {
+        "ERR_NETWORK",
+        "ERR_TIMEOUT",
+        "ERR_UNAUTHORIZED",
+        "ERR_SESSION_EXPIRED",
+        "ERR_FORBIDDEN",
+        "ERR_NOT_FOUND",
+        "ERR_VALIDATION",
+        "ERR_CONFLICT",
+        "ERR_CONFLICT_GROUP_IN_USE",
+        "ERR_RATE_LIMIT",
+        "ERR_SERVER",
+        "ERR_BAD_RESPONSE",
+        "ERR_NO_SECRET",
+        "ERR_SECRET_REQUIRED",
+    }
+    assert required <= set(ru.TEXT_KEYS)
+
+
+def test_status_strings_carry_text_not_only_a_glyph() -> None:
+    status_keys = [name for name in ru.TEXT_KEYS if name.startswith("STATUS_")]
+    assert status_keys
+    for name in status_keys:
+        assert _CYRILLIC.search(ru.TEXT_KEYS[name]), f"{name} must include words"
+
+
+def test_menu_and_sidebar_labels_exist() -> None:
+    required = {
+        "SIDEBAR_OVERVIEW",
+        "SIDEBAR_GROUPS",
+        "SIDEBAR_SETTINGS",
+        "SIDEBAR_FILTERS",
+        "SIDEBAR_HELP",
+        "MENU_CONNECTION_SETTINGS",
+        "MENU_CHECK_CONNECTION",
+        "MENU_LOGOUT",
+        "MENU_ABOUT",
+    }
+    assert required <= set(ru.TEXT_KEYS)
