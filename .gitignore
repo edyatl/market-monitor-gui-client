@@ -179,3 +179,4 @@ infra/**/*.retry
 
 *.dump
 docker-compose.override.yml
+.opencode
