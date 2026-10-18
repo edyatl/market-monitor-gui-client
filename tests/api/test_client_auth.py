@@ -10,7 +10,7 @@ import pytest
 from market_monitor_gui.api.client import ApiClient
 from market_monitor_gui.api.errors import ApiError, ErrorKind
 
-from .conftest import DEFAULT_ORIGIN, record_requests, urls
+from .conftest import DEFAULT_ORIGIN, MakeClient, record_requests, urls
 
 pytestmark = pytest.mark.unit
 
@@ -18,7 +18,7 @@ LOGIN_BODY = {"authenticated": True, "expires_in": 3600}
 COOKIE_HEADER = {"set-cookie": "gui_session=test-token; Path=/; HttpOnly"}
 
 
-def test_login_posts_secret_and_path(make_client) -> None:
+def test_login_posts_secret_and_path(make_client: MakeClient) -> None:
     seen, handler = record_requests(
         lambda request: httpx.Response(200, json=LOGIN_BODY, headers=COOKIE_HEADER)
     )
@@ -33,7 +33,7 @@ def test_login_posts_secret_and_path(make_client) -> None:
     assert json.loads(seen[0].content) == {"client_secret": "s3cret"}
 
 
-def test_login_stores_session_cookie_and_protected_call_sends_it(make_client) -> None:
+def test_login_stores_session_cookie_and_protected_call_sends_it(make_client: MakeClient) -> None:
     seen, handler = record_requests(
         lambda request: httpx.Response(
             200,
@@ -52,7 +52,7 @@ def test_login_stores_session_cookie_and_protected_call_sends_it(make_client) ->
     assert "gui_session=test-token" in seen[1].headers.get("cookie", "")
 
 
-def test_never_sends_x_app_key(make_client) -> None:
+def test_never_sends_x_app_key(make_client: MakeClient) -> None:
     seen, handler = record_requests(
         lambda request: httpx.Response(200, json=LOGIN_BODY, headers=COOKIE_HEADER)
     )
@@ -63,7 +63,7 @@ def test_never_sends_x_app_key(make_client) -> None:
         assert "x-app-key" not in request.headers
 
 
-def test_logout_clears_cookies(make_client) -> None:
+def test_logout_clears_cookies(make_client: MakeClient) -> None:
     _, handler = record_requests(
         lambda request: httpx.Response(200, json=LOGIN_BODY, headers=COOKIE_HEADER)
     )
@@ -73,7 +73,7 @@ def test_logout_clears_cookies(make_client) -> None:
     assert client.has_session_cookies() is False
 
 
-def test_unauthorized_login_raises_without_storing_cookie(make_client) -> None:
+def test_unauthorized_login_raises_without_storing_cookie(make_client: MakeClient) -> None:
     handler = lambda request: httpx.Response(  # noqa: E731
         401,
         json={
@@ -93,12 +93,12 @@ def test_unauthorized_login_raises_without_storing_cookie(make_client) -> None:
     assert client.has_session_cookies() is False
 
 
-def test_check_auth_false(make_client) -> None:
+def test_check_auth_false(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(200, json={"authenticated": False}))
     assert client.check_auth().authenticated is False
 
 
-def test_origin_is_exposed(make_client) -> None:
+def test_origin_is_exposed(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(200, json=LOGIN_BODY))
     assert client.origin == DEFAULT_ORIGIN
 

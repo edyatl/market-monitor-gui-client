@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from market_monitor_gui.db._time import utc_now
-from market_monitor_gui.db.cache import TABLE, CacheKey, CacheStore
+from market_monitor_gui.db.cache import TABLE, CacheKey, CacheStore, JsonValue
 from market_monitor_gui.db.database import Database
 
 pytestmark = pytest.mark.unit
@@ -27,7 +27,7 @@ def test_load_missing_returns_none(store: CacheStore) -> None:
 
 
 def test_round_trip_list_payload(store: CacheStore) -> None:
-    payload = [{"id": 1, "name": "g1"}, {"id": 2, "name": "g2"}]
+    payload: JsonValue = [{"id": 1, "name": "g1"}, {"id": 2, "name": "g2"}]
     store.set_json(SERVER_A, CacheKey.GROUPS, payload)
     entry = store.load(SERVER_A, CacheKey.GROUPS)
     assert entry is not None
@@ -126,12 +126,13 @@ def test_age_seconds_reflects_fetch_time(tmp_path: Path) -> None:
 
 
 def test_large_payload_round_trips(store: CacheStore) -> None:
-    payload = [{"id": i, "name": f"group-{i}"} for i in range(2000)]
+    payload: JsonValue = [{"id": i, "name": f"group-{i}"} for i in range(2000)]
     store.set_json(SERVER_A, CacheKey.GROUPS, payload)
     entry = store.load(SERVER_A, CacheKey.GROUPS)
     assert entry is not None and entry.payload == payload
 
 
 def test_cache_key_enum_values_are_stable() -> None:
-    assert CacheKey.GROUPS == "groups"
-    assert CacheKey.DASHBOARD_SUMMARY == "dashboard_summary"
+    assert CacheKey.GROUPS.value == "groups"
+    assert CacheKey.DASHBOARD_SUMMARY.value == "dashboard_summary"
+    assert str(CacheKey.FILTERS) == "filters"

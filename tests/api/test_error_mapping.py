@@ -13,6 +13,8 @@ from market_monitor_gui.api.errors import (
 )
 from market_monitor_gui.texts import ru
 
+from .conftest import MakeClient
+
 pytestmark = pytest.mark.unit
 
 
@@ -35,7 +37,7 @@ def test_status_mapping(status: int, kind: ErrorKind) -> None:
     assert kind_for_status(status) is kind
 
 
-def test_401_problem_json(make_client) -> None:
+def test_401_problem_json(make_client: MakeClient) -> None:
     body = {
         "type": "about:blank",
         "title": "Unauthorized",
@@ -58,7 +60,7 @@ def test_401_problem_json(make_client) -> None:
     assert error.detail == "Authentication required"
 
 
-def test_422_validation_fields(make_client) -> None:
+def test_422_validation_fields(make_client: MakeClient) -> None:
     body = {
         "detail": [
             {
@@ -82,7 +84,7 @@ def test_422_validation_fields(make_client) -> None:
     assert "less than or equal" in field.message
 
 
-def test_409_maps_to_conflict(make_client) -> None:
+def test_409_maps_to_conflict(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(409, json={"detail": "in use"}))
     with pytest.raises(ApiError) as excinfo:
         client.delete_group(1)
@@ -90,14 +92,14 @@ def test_409_maps_to_conflict(make_client) -> None:
     assert excinfo.value.text_key == "ERR_CONFLICT"
 
 
-def test_429_maps_to_rate_limit(make_client) -> None:
+def test_429_maps_to_rate_limit(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(429, json={"detail": "slow down"}))
     with pytest.raises(ApiError) as excinfo:
         client.list_groups()
     assert excinfo.value.kind is ErrorKind.RATE_LIMIT
 
 
-def test_non_json_error_body_still_classifies(make_client) -> None:
+def test_non_json_error_body_still_classifies(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(500, text="<html>bad gateway</html>"))
     with pytest.raises(ApiError) as excinfo:
         client.list_groups()
@@ -107,7 +109,7 @@ def test_non_json_error_body_still_classifies(make_client) -> None:
     assert "bad gateway" not in str(error)
 
 
-def test_timeout_maps_to_timeout(make_client) -> None:
+def test_timeout_maps_to_timeout(make_client: MakeClient) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("too slow", request=request)
 
@@ -118,7 +120,7 @@ def test_timeout_maps_to_timeout(make_client) -> None:
     assert excinfo.value.text_key == "ERR_TIMEOUT"
 
 
-def test_connect_error_maps_to_network(make_client) -> None:
+def test_connect_error_maps_to_network(make_client: MakeClient) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused", request=request)
 
@@ -131,7 +133,7 @@ def test_connect_error_maps_to_network(make_client) -> None:
     assert error.text_key == "ERR_NETWORK"
 
 
-def test_invalid_json_on_success_maps_to_decode(make_client) -> None:
+def test_invalid_json_on_success_maps_to_decode(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(200, text="not json"))
     with pytest.raises(ApiError) as excinfo:
         client.list_groups()
@@ -139,14 +141,14 @@ def test_invalid_json_on_success_maps_to_decode(make_client) -> None:
     assert excinfo.value.text_key == "ERR_BAD_RESPONSE"
 
 
-def test_wrong_shape_on_success_maps_to_decode(make_client) -> None:
+def test_wrong_shape_on_success_maps_to_decode(make_client: MakeClient) -> None:
     client = make_client(lambda request: httpx.Response(200, json={"unexpected": True}))
     with pytest.raises(ApiError) as excinfo:
         client.get_settings()
     assert excinfo.value.kind is ErrorKind.DECODE
 
 
-def test_error_str_never_leaks_body(make_client) -> None:
+def test_error_str_never_leaks_body(make_client: MakeClient) -> None:
     secret_leak = "super-secret-value"
     client = make_client(lambda request: httpx.Response(500, json={"detail": secret_leak}))
     with pytest.raises(ApiError) as excinfo:

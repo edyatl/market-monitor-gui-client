@@ -53,10 +53,11 @@ class FakeServer:
         self._tokens.clear()
 
     def _token(self, request: httpx.Request) -> str | None:
-        for part in request.headers.get("cookie", "").split(";"):
+        cookie_header: str = request.headers.get("cookie", "")
+        for part in cookie_header.split(";"):
             part = part.strip()
             if part.startswith("gui_session="):
-                return part.split("=", 1)[1]
+                return part.partition("=")[2]
         return None
 
     def _authorized(self, request: httpx.Request) -> bool:
