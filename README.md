@@ -52,25 +52,31 @@ You can still save the secret from **Connection settings** for subsequent runs w
 | Auth           | `POST /api/v1/auth/app-login` → cookie `gui_session` |
 | Protected API  | Cookie only (do not rely on `X-App-Key` in the GUI)  |
 
-Contract details for implementers: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) (add when bootstrap is done).
+Contract details for implementers: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) (verified against the live OpenAPI document).
 
 ## Authentication model
 
-1. Operator provides the **application secret** (same value the server knows as the client secret / `API_APP_KEY`).
+1. Operator provides the **application secret** (same value the server knows as the client secret).
 2. Client calls `POST /api/v1/auth/app-login` with `{"client_secret": "..."}`.
-3. Server sets HttpOnly session cookie; client keeps it in an in-memory HTTPX cookie jar.
-4. All other `/api/v1/*` calls send that cookie. Session JWT is **not** written to SQLite or config files.
-5. On `401`, the client may try **one** coordinated re-login if the secret is available; otherwise it shows the login UI.
+3. Server sets a session cookie; the client keeps it in an in-memory HTTPX cookie jar.
+4. All other `/api/v1/*` calls send that cookie. The secret and the session are **not** written to SQLite or config files.
+5. On `401`, a safe **read** may trigger **one** coordinated re-login if a secret is available; **writes are never replayed** — the screen refreshes and shows server state.
+
+### API origin and secret precedence
+
+- `API_BASE_URL` is an **origin only** (scheme + host + optional port); a trailing `/api/v1` is tolerated and stripped on load.
+- Automatic login uses the environment / `.env` secret (`APP_SECRET`, or legacy `API_APP_KEY`) first, then the saved encrypted secret. A secret typed in the login dialog is used for that login only.
 
 ## Configuration and data locations
 
 | Item | Purpose |
 |------|---------|
 | `.env` (dev) | `APP_SECRET`, `API_BASE_URL` — never commit real secrets |
-| Encrypted config + key file | Persisted secret (Fernet); next to the executable or in a per-user app data directory |
-| SQLite DB | UI state (theme, last screen, window geometry) and last successful API responses for display |
+| `config.json` | Non-secret config (API origin) in the per-user data directory |
+| `secret.key` / `secret.enc` | Fernet key + encrypted secret (owner-only permissions) |
+| `state.db` (SQLite) | UI state (theme, last screen, window geometry) and last successful API responses for display |
 
-One-file Nuitka builds extract to a temp directory: **never** store config/DB only inside that extract path; resolve the real executable location or use a user data directory.
+Everything lives in a **per-user data directory**: `$XDG_DATA_HOME`/`~/.local/share/market-monitor-gui` (Linux) or `%LOCALAPPDATA%\MarketMonitor` (Windows). Override with `MARKET_MONITOR_GUI_DATA_DIR`. Nothing is written beside the executable or into a Nuitka one-file extraction directory.
 
 ## Project layout (target)
 
