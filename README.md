@@ -78,6 +78,13 @@ Contract details for implementers: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md
 
 Everything lives in a **per-user data directory**: `$XDG_DATA_HOME`/`~/.local/share/market-monitor-gui` (Linux) or `%LOCALAPPDATA%\MarketMonitor` (Windows). Override with `MARKET_MONITOR_GUI_DATA_DIR`. Nothing is written beside the executable or into a Nuitka one-file extraction directory.
 
+### Optional local reference: backend Russian texts
+
+To keep wording aligned with the Telegram bot, you may place a **local, git-ignored**
+copy of the backend's Russian strings at `reference/backend_texts_ru.py`. This path
+is listed in `.gitignore` and is **not** imported by runtime code — it is a manual
+reference only. Never commit backend bot texts or real secrets.
+
 ## Project layout (target)
 
 ```text
