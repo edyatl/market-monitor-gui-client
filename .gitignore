@@ -138,15 +138,18 @@ Session.vim
 .env.*
 !.env.example
 
+# Market Monitor GUI local state and secrets (never commit these)
+config.json
+*.key
+*.enc
+
 # Pylint config
 .pylintrc
 
 # PostgreSQL data directory
 pgdata
 
-CONVENTIONS.md
 CONVENTIONS.ts.md
-AGENTS.md
 
 # Logs
 logs
@@ -180,3 +183,5 @@ infra/**/*.retry
 *.dump
 docker-compose.override.yml
 .opencode
+AGENTS.md
+CONVENTIONS.md

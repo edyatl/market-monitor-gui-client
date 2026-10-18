@@ -136,4 +136,8 @@ markers = [
     "integration: Integration tests",
     "e2e: End-to-end tests",
 ]
+filterwarnings = [
+  "ignore:.*get_event_loop_policy.*:DeprecationWarning",
+  "ignore:.*set_event_loop_policy.*:DeprecationWarning",
+]
 
