@@ -1,56 +1,59 @@
 # API contract — verified
 
-**Verified:** 2026-10-18, by fetching `GET https://api.market-resale-signal.xubi.org/openapi.json`
-(FastAPI, OpenAPI 3.1.0, `info.version` 0.1.0). Unauthenticated 401 body and HTTP/2/TLS
-negotiation were probed with `curl` (no credentials sent).
+**Verified:** 2026-10-18 against `GET https://api.market-resale-signal.xubi.org/openapi.json`
+(FastAPI, OpenAPI 3.1.0, `info.version` `0.1.0`). Unauthenticated `401` body and HTTP/2/TLS
+were checked with `curl` (no credentials).
 
-This file is the source of truth for the GUI. Do not invent fields or endpoints.
-If the backend changes, re-fetch the OpenAPI document and update this file.
+This file is the GUI source of truth for HTTP integration. Do not invent fields or endpoints.
+If the backend changes, re-fetch OpenAPI and update this file.
 
 ## Base URL and origin normalization
 
-The client stores a single **origin** (scheme + host + optional port, no path).
-Accepted inputs are normalized on load (env, `config.json`, or operator input):
+The client stores a single **origin** (scheme + host + optional port, **no path**).
+Inputs are normalized on load (env, `config.json`, or operator input):
 
 | Input | Normalized |
-|---|---|
-| `https://api.market-resale-signal.xubi.org` | `https://api.market-resale-signal.xubi.org` |
-| `https://api.market-resale-signal.xubi.org/` | `https://api.market-resale-signal.xubi.org` |
-| `https://api.market-resale-signal.xubi.org/api/v1` | `https://api.market-resale-signal.xubi.org` |
-| `https://api.market-resale-signal.xubi.org/api/v1/` | `https://api.market-resale-signal.xubi.org` |
+| ----- | ---------- |
+| `https://api.market-resale-signal.xubi.org` | same |
+| `https://api.market-resale-signal.xubi.org/` | strip trailing `/` |
+| `https://api.market-resale-signal.xubi.org/api/v1` | strip `/api/v1` |
+| `https://api.market-resale-signal.xubi.org/api/v1/` | strip `/api/v1/` |
 | `http://localhost:8000/api/v1` | `http://localhost:8000` |
 
-URLs are then built as:
+URL construction:
 
-- API calls: `{origin}/api/v1/<path>` (e.g. `{origin}/api/v1/auth/app-login`)
-- Liveness: `{origin}/health/live` (public, **outside** `/api/v1`)
+- API: `{origin}/api/v1/<path>` (example: `{origin}/api/v1/auth/app-login`)
+- Liveness: `{origin}/health/live` (**public**, outside `/api/v1`)
 
-Default origin: `https://api.market-resale-signal.xubi.org`.
-Only `http` and `https` schemes are accepted.
+Default origin: `https://api.market-resale-signal.xubi.org`.  
+Only `http` and `https` are accepted.
 
 ## Authentication
 
-1. Operator provides the shared application **secret**.
-2. `POST {origin}/api/v1/auth/app-login`, body `{"client_secret": "<secret>"}`.
-3. Server responds `200` with `{"authenticated": true, "expires_in": <seconds>}` and
-   sets a session cookie. Expected cookie name: **`gui_session`** (per product docs;
-   **confirm on one manual login** — the OpenAPI document does not declare it).
-4. Every protected `/api/v1/*` call carries that cookie. It lives only in the
-   in-memory httpx cookie jar; it is never written to disk or logs.
+1. Operator supplies the shared application **secret**.
+2. `POST {origin}/api/v1/auth/app-login` with JSON `{"client_secret": "<secret>"}` (`AppLoginRequest`).
+3. Success: `200` `AppLoginResponse` `{ "authenticated": true, "expires_in": <seconds> }` and a
+   **session cookie** set by the server. Expected name: **`gui_session`** (product convention;
+   **not declared in OpenAPI** — confirm on one manual login). Cookie stays in the in-memory
+   httpx jar only; never disk or logs.
+4. Protected `/api/v1/*` calls rely on that cookie.
 5. `GET {origin}/health/live` needs no authentication.
 
-**Do not** send `X-App-Key` on normal API calls, and do not design a flow that needs it.
+**GUI policy:** do **not** send `X-App-Key` on normal API calls.  
+Note: OpenAPI text for `GET /api/v1/auth/check` mentions “session cookie or app key”; that is a
+**server** capability. The GUI still uses **cookie session after app-login** only.
 
 ### Session check
 
-`GET {origin}/api/v1/auth/check` → `200 {"authenticated": <bool>}`.
+`GET {origin}/api/v1/auth/check` → `200` `AuthCheckResponse` `{ "authenticated": <bool> }`.
 
 ## Endpoints
 
-All protected unless marked public. All request/response bodies are JSON.
+Protected unless marked public. Bodies are JSON. List endpoints return **bare arrays** (no envelope).
+No pagination or list query parameters in OpenAPI.
 
 | Method | Path | Request | Success | Notes |
-|---|---|---|---|---|
+| ------ | ---- | ------- | ------- | ----- |
 | GET | `/health/live` | — | `200 LiveResponse` | **public** |
 | POST | `/api/v1/auth/app-login` | `AppLoginRequest` | `200 AppLoginResponse` | sets cookie |
 | GET | `/api/v1/auth/check` | — | `200 AuthCheckResponse` | |
@@ -59,107 +62,207 @@ All protected unless marked public. All request/response bodies are JSON.
 | GET | `/api/v1/dashboard/summary` | — | `200 DashboardSummaryResponse` | |
 | GET | `/api/v1/settings` | — | `200 SettingsResponse` | |
 | PATCH | `/api/v1/settings` | `SettingsPatchRequest` | `200 SettingsResponse` | |
-| GET | `/api/v1/groups` | — | `200 [GroupResponse]` | |
+| GET | `/api/v1/groups` | — | `200 GroupResponse[]` | |
 | POST | `/api/v1/groups` | `GroupCreateRequest` | `201 GroupResponse` | |
-| GET | `/api/v1/groups/{group_id}` | — | `200 GroupResponse` | `group_id` int |
-| PATCH | `/api/v1/groups/{group_id}` | `GroupPatchRequest` | `200 GroupResponse` | |
-| DELETE | `/api/v1/groups/{group_id}` | — | `204` no body | see caveats |
-| GET | `/api/v1/filters` | — | `200 [FilterResponse]` | |
-| POST | `/api/v1/filters` | `FilterCreateRequest` | `201 FilterResponse` | |
-| DELETE | `/api/v1/filters/{filter_id}` | — | `204` no body | `filter_id` int |
+| GET | `/api/v1/groups/{group_id}` | path `group_id: int` | `200 GroupResponse` | |
+| PATCH | `/api/v1/groups/{group_id}` | `GroupPatchRequest` | `200 GroupResponse` | omitted fields unchanged |
+| DELETE | `/api/v1/groups/{group_id}` | path `group_id: int` | `204` | see **Group delete / 409** |
+| GET | `/api/v1/filters` | — | `200 FilterResponse[]` | |
+| POST | `/api/v1/filters` | `FilterCreateRequest` | `201 FilterResponse` | body: `phrase` only |
+| DELETE | `/api/v1/filters/{filter_id}` | path `filter_id: int` | `204` | |
 
-No pagination, query parameters, or filtering parameters are defined on the list
-endpoints. `GET` list responses have no envelope — they are bare JSON arrays.
+OpenAPI lists `422` on several mutating routes via `HTTPValidationError`.
 
 ## Models
 
-`*` marks required fields. Datetimes are ISO-8601 strings (`date-time`).
+`*` = required. Datetimes are JSON strings with `format: date-time`.
+
+### Auth / health (simple)
 
 ```text
-AppLoginRequest          client_secret: str *
-AppLoginResponse         authenticated: bool *, expires_in: int *
-AuthCheckResponse        authenticated: bool *
-LiveResponse             status: str
-ReadyResponse            status: str, database: str
+AppLoginRequest
+  client_secret: string *
 
-GroupCreateRequest       name: str *, url: str *, enabled: bool (optional)
-GroupPatchRequest        name: str|null (1..200), url: str|null (min 1),
-                         enabled: bool|null, sort_order: int|null (>=0)
-GroupResponse            id: int *, name: str *, url: str *, enabled: bool *,
-                         sort_order: int *, created_at: str *, updated_at: str *
+AppLoginResponse
+  authenticated: boolean *
+  expires_in: integer *
 
-FilterCreateRequest      phrase: str *
-FilterResponse           id: int *, phrase: str *, normalized_phrase: str *,
-                         enabled: bool *, created_at: str *, updated_at: str *
+AuthCheckResponse
+  authenticated: boolean *
 
-SettingsPatchRequest     price_drop_threshold_percent: float|null (0.1..100)
-SettingsResponse         price_drop_threshold_percent: float *
+LiveResponse
+  status: string  # OpenAPI const "ok" (default "ok")
 
-WorkerHealthSummary      worker_id: str *, status: str *, is_alive: bool *,
-                         last_heartbeat_at: str *,
-                         last_scan_started_at: str|null, last_scan_finished_at: str|null,
-                         last_successful_scan_at: str|null, last_error_at: str|null,
-                         details: object|null
-LatestScanRunSummary     id: int|null, status: str *, started_at: str *,
-                         finished_at: str|null, groups_total: int, groups_success: int,
-                         groups_failed: int, products_seen: int, new_products: int,
-                         price_drops: int, errors: int, duration_ms: int|null,
-                         error_summary: str|null
-HealthStatusResponse     worker: WorkerHealthSummary|null,
-                         latest_scan_run: LatestScanRunSummary|null,
-                         enabled_groups: int, total_groups: int, products_count: int,
-                         pending_deliveries: int, failed_deliveries: int,
-                         last_successful_scan_at: str|null
-DashboardSummaryResponse groups_total: int, groups_enabled: int, products_total: int,
-                         products_active: int, products_missing: int,
-                         pending_deliveries: int, failed_deliveries: int,
-                         worker_status: str|null, worker_last_heartbeat_at: str|null,
-                         last_successful_scan_at: str|null
+ReadyResponse
+  status: string    # OpenAPI const "ready"
+  database: string  # OpenAPI const "ok"
 ```
 
-The price-drop threshold is a **percentage** (`price_drop_threshold_percent`), range
-**0.1–100**, and is a **global** server setting (not per operator). The GUI accepts a
-comma or a dot as the decimal separator in input and sends a JSON number.
+### Groups
+
+```text
+GroupCreateRequest  (additionalProperties: false)
+  name: string *     # minLength 1, maxLength 200
+  url: string *      # minLength 1
+  enabled: boolean   # optional; OpenAPI default true
+
+GroupPatchRequest  (additionalProperties: false)
+  name: string | null       # 1..200 when set
+  url: string | null        # minLength 1 when set
+  enabled: boolean | null
+  sort_order: integer | null  # minimum 0
+
+GroupResponse
+  id: integer *
+  name: string *
+  url: string *
+  enabled: boolean *
+  sort_order: integer *
+  created_at: date-time *
+  updated_at: date-time *
+```
+
+### Filters
+
+```text
+FilterCreateRequest  (additionalProperties: false)
+  phrase: string *   # minLength 1, maxLength 500
+  # no `enabled` on create in OpenAPI
+
+FilterResponse
+  id: integer *
+  phrase: string *
+  normalized_phrase: string *
+  enabled: boolean *
+  created_at: date-time *
+  updated_at: date-time *
+```
+
+### Settings
+
+```text
+SettingsPatchRequest  (additionalProperties: false)
+  price_drop_threshold_percent: number | null  # minimum 0.1, maximum 100
+
+SettingsResponse
+  price_drop_threshold_percent: number *
+```
+
+Threshold is a **percent** (0.1–100), **global** on the server (not per GUI user).  
+GUI may accept comma or dot in the form and must send a JSON number.
+
+### Dashboard / detailed health
+
+```text
+DashboardSummaryResponse
+  groups_total: integer (default 0)
+  groups_enabled: integer (default 0)
+  products_total: integer (default 0)
+  products_active: integer (default 0)
+  products_missing: integer (default 0)
+  pending_deliveries: integer (default 0)
+  failed_deliveries: integer (default 0)
+  worker_status: string | null
+  worker_last_heartbeat_at: date-time | null
+  last_successful_scan_at: date-time | null
+
+WorkerHealthSummary
+  worker_id: string *
+  status: string *
+  is_alive: boolean *
+  last_heartbeat_at: date-time *
+  last_scan_started_at: date-time | null
+  last_scan_finished_at: date-time | null
+  last_successful_scan_at: date-time | null
+  last_error_at: date-time | null
+  details: object | null
+
+LatestScanRunSummary
+  id: integer | null
+  status: string *
+  started_at: date-time *
+  finished_at: date-time | null
+  groups_total: integer (default 0)
+  groups_success: integer (default 0)
+  groups_failed: integer (default 0)
+  products_seen: integer (default 0)
+  new_products: integer (default 0)
+  price_drops: integer (default 0)
+  errors: integer (default 0)
+  duration_ms: integer | null
+  error_summary: string | null
+
+HealthStatusResponse
+  worker: WorkerHealthSummary | null
+  latest_scan_run: LatestScanRunSummary | null
+  enabled_groups: integer (default 0)
+  total_groups: integer (default 0)
+  products_count: integer (default 0)
+  pending_deliveries: integer (default 0)
+  failed_deliveries: integer (default 0)
+  last_successful_scan_at: date-time | null
+```
 
 ## Error responses
 
-- **401 Unauthorized** — `Content-Type: application/problem+json` (RFC 7807):
+### 401 Unauthorized
 
-  ```json
-  {"type":"about:blank","title":"Unauthorized","status":401,
-   "detail":"Authentication required","instance":"/api/v1/auth/check"}
-  ```
+Observed `Content-Type: application/problem+json` (RFC 7807-style), example:
 
-  The GUI maps it to: one coordinated re-login for **reads** only, then show "session
-  expired". Writes are never replayed. The problem `detail` is never shown raw to the
-  operator.
+```json
+{
+  "type": "about:blank",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "Authentication required",
+  "instance": "/api/v1/auth/check"
+}
+```
 
-- **422 Unprocessable Entity** — FastAPI validation error:
+GUI: one coordinated re-login for **safe reads** only; **never replay writes**; never show raw `detail` to the operator.
 
-  ```json
-  {"detail":[{"loc":["body","price_drop_threshold_percent"],
-              "msg":"Input should be less than or equal to 100",
-              "type":"less_than_equal","input":123,"ctx":{...}}]}
-  ```
+### 422 Unprocessable Entity
 
-  Mapped to inline, plain-Russian field messages; the raw `msg` is not displayed.
+Schema `HTTPValidationError`:
 
-- **`409 Conflict` is not declared anywhere in the OpenAPI document** (group delete
-  documents only `204` and `422`). The client still maps `409` defensively — for a group
-  delete it means "in use, disable instead" — but this behaviour is unverified.
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "price_drop_threshold_percent"],
+      "msg": "…",
+      "type": "…",
+      "input": …,
+      "ctx": { }
+    }
+  ]
+}
+```
 
-Guard against `403`, `404`, `429`, and `5xx`; responses may not always be JSON, so a
-non-JSON error body must not crash the client.
+GUI: map to plain-language field errors; do not show raw English `msg` as the primary copy.
 
-## Transport
+### Group delete and 409
 
-- HTTPS with verification on (never disabled). `certifi` bundle in packaged builds.
-- Prefer HTTP/2 — the server negotiates `h2` over ALPN; HTTP/1.1 fallback is fine.
-- Explicit connect/read/write/pool timeouts; one shared client (connection reuse).
-- Follow redirects: no.
+OpenAPI **operation description** for `DELETE /api/v1/groups/{group_id}`:
 
-## Caveats to confirm with the backend owner
+> Hard-delete a group, or **409 when referenced by history.**
 
-1. Session cookie name (`gui_session`) — not in OpenAPI; confirm once by logging in.
-2. `409` semantics on group delete — not documented.
-3. Whether `POST /api/v1/filters` accepts an `enabled` flag — not in the schema.
+OpenAPI **`responses`** for that operation list only **`204`** and **`422`** — **409 is not declared**.
+
+GUI should still handle **`409` defensively** (treat as conflict / “in use”; prefer disable over delete) and keep operator messaging for that case. Treat full 409 contract as **implementation-backed**, not fully specified in `responses`.
+
+### Other statuses
+
+Guard **403**, **404**, **429**, **5xx**. Bodies may be non-JSON; decoding failures must not crash the client.
+
+## Transport (GUI requirements)
+
+- TLS verification **on** (never disable). Use `certifi` in packaged builds.
+- Prefer HTTP/2 when ALPN negotiates `h2`; HTTP/1.1 fallback is acceptable.
+- Explicit connect/read/write/pool timeouts; shared httpx client; **no** redirect following by default.
+
+## Operator / backend confirmations
+
+1. Session cookie **name** (expected `gui_session`) — missing from OpenAPI.
+2. Runtime **409** on group delete when history references the group — described in prose, absent from formal `responses`.
+3. No `enabled` on `FilterCreateRequest` — create sends **`phrase` only**; `enabled` appears only on `FilterResponse`.
