@@ -26,6 +26,8 @@ LIVE_PATH: Final[str] = "/health/live"
 
 _ALLOWED_SCHEMES: Final[frozenset[str]] = frozenset({"http", "https"})
 
+_LOOPBACK_HOSTS: Final[frozenset[str]] = frozenset({"localhost", "127.0.0.1", "::1"})
+
 
 def normalize_api_origin(raw: str) -> str:
     """Return the canonical origin (scheme + host + optional port) for ``raw``.
@@ -76,3 +78,14 @@ def is_default_origin(origin: str) -> bool:
         return normalize_api_origin(origin) == normalize_api_origin(DEFAULT_API_BASE_URL)
     except ValueError:
         return False
+
+
+def is_loopback_origin(origin: str) -> bool:
+    """Return True when ``origin`` points at the local machine (dev exception)."""
+    try:
+        host = urlsplit(origin).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    return host.lower() in _LOOPBACK_HOSTS

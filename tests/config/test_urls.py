@@ -9,6 +9,7 @@ from market_monitor_gui.config.urls import (
     DEFAULT_API_BASE_URL,
     api_url,
     is_default_origin,
+    is_loopback_origin,
     live_url,
     normalize_api_origin,
 )
@@ -73,3 +74,19 @@ def test_is_default_origin() -> None:
     assert is_default_origin(DEFAULT_API_BASE_URL + "/api/v1/")
     assert not is_default_origin("http://localhost:8000")
     assert not is_default_origin("garbage")
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["http://localhost", "http://localhost:8000", "http://127.0.0.1:8000", "http://[::1]:8000"],
+)
+def test_is_loopback_origin_true(origin: str) -> None:
+    assert is_loopback_origin(origin) is True
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["https://api.example.org", "http://api.example.org", "http://192.168.0.1", "garbage"],
+)
+def test_is_loopback_origin_false(origin: str) -> None:
+    assert is_loopback_origin(origin) is False
