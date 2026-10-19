@@ -53,14 +53,13 @@ def worker_value(status: str | None, alive: bool | None) -> str:
     """Compose the worker value: text (never colour alone) from the API fields.
 
     ``is_alive`` is an explicit contract field, so the liveness glyph is not a guess;
-    the free-form ``status`` string is shown verbatim alongside it.
+    the free-form ``status`` string is shown verbatim alongside it. All glyphs and
+    wording come from :mod:`market_monitor_gui.texts.ru` (never hardcoded here).
     """
     if alive is False:
         return ru.OVERVIEW_WORKER_DEAD
     if alive is True:
-        if status:
-            return f"{ru.OVERVIEW_WORKER_ALIVE} — {status}"
-        return ru.OVERVIEW_WORKER_ALIVE
+        return ru.fmt_overview_worker_alive(status)
     return ru.fmt_overview_worker(status)
 
 

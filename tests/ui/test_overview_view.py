@@ -60,10 +60,11 @@ def test_scan_time_placeholder_when_never_scanned() -> None:
 
 
 def test_worker_value_uses_alive_flag() -> None:
-    assert worker_value("running", True) == f"{ru.OVERVIEW_WORKER_ALIVE} — running"
+    assert worker_value("running", True) == ru.fmt_overview_worker_alive("running")
     assert worker_value("running", False) == ru.OVERVIEW_WORKER_DEAD
     assert worker_value(None, None) == ru.OVERVIEW_WORKER_UNKNOWN
     assert worker_value("ok", None) == ru.fmt_overview_worker("ok")
+    assert worker_value(None, True) == ru.OVERVIEW_WORKER_ALIVE
 
 
 def test_scan_run_line_optional() -> None:

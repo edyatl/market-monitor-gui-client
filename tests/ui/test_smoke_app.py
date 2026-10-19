@@ -6,9 +6,7 @@ Skipped unless ``DISPLAY``/``WAYLAND_DISPLAY`` is set (e.g. under ``xvfb-run``).
 from __future__ import annotations
 
 import os
-import tkinter as tk
 from pathlib import Path
-from typing import Any, cast
 
 import pytest
 
@@ -105,20 +103,9 @@ def test_sidebar_order_is_overview_groups_filters_settings_help(
         context.close()
 
 
-class _Click:
-    """Minimal stand-in for a Tk click event for the menu dismiss handler."""
-
-    def __init__(self, widget: object) -> None:
-        self.widget: Any = widget
-
-
-def _click_event(widget: object) -> tk.Event[tk.Misc]:
-    return cast("tk.Event[tk.Misc]", _Click(widget))
-
-
 @pytest.mark.skipif(not _has_display(), reason="no display available")
-def test_menu_opens_on_click_and_dismisses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The menu is click-toggle: one click opens it and it stays open until dismissed."""
+def test_menu_anchored_and_stays_open(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """One click posts a menu next to the button; it stays open until dismissed."""
     monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
 
     from market_monitor_gui.app import AppContext
@@ -129,31 +116,40 @@ def test_menu_opens_on_click_and_dismisses(tmp_path: Path, monkeypatch: pytest.M
         shell = Shell(context)
         shell.update()
         menu = shell._menu
+        button = menu.button
         assert not menu._is_open()
+
         menu.toggle()
         shell.update()
         assert menu._is_open()
-        assert menu._popup is not None
-        assert len(menu._popup.winfo_children()) == 4
+        assert menu._menu.winfo_ismapped()
+
+        # Anchored to the button (never the top-left of the screen) and above it.
+        assert menu._menu.winfo_rootx() == button.winfo_rootx()
+        assert menu._menu.winfo_rootx() > 5
+        assert menu._menu.winfo_rooty() < button.winfo_rooty()
+
+        # Exactly the four operator actions.
+        last = menu._menu.index("end")
+        assert last is not None
+        commands = [i for i in range(last + 1) if menu._menu.type(i) == "command"]
+        assert len(commands) == 4
+
+        # Stays open across event processing (no press-and-hold, no self-dismiss).
+        shell.update_idletasks()
+        shell.update()
+        assert menu._is_open()
+
+        # A second click of the button closes it.
         menu.toggle()
         shell.update()
         assert not menu._is_open()
 
-        # Clicking away dismisses.
+        # Explicit close (item selection / Escape / click-outside use the same path).
         menu.open()
         shell.update()
-        menu._on_any_click(_click_event(shell))
-        shell.update()
-        assert not menu._is_open()
-
-        # Clicking the menu button while open closes and does not reopen.
-        menu.open()
-        shell.update()
-        menu._press_while_open = True
-        menu._on_any_click(_click_event(shell))
-        shell.update()
-        assert not menu._is_open()
-        menu.toggle()
+        assert menu._is_open()
+        menu.close()
         shell.update()
         assert not menu._is_open()
         shell.destroy()

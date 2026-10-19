@@ -55,12 +55,14 @@ class Sidebar(ctk.CTkFrame):
             if candidate is screen:
                 button.configure(
                     fg_color=theme.colour("accent"),
+                    hover_color=theme.colour("accent_hover"),
                     text_color=theme.colour("on_accent"),
                     font=self._fonts.section,
                 )
             else:
                 button.configure(
                     fg_color="transparent",
+                    hover_color=theme.colour("hover"),
                     text_color=theme.colour("text"),
                     font=self._fonts.body,
                 )
@@ -71,6 +73,7 @@ class Sidebar(ctk.CTkFrame):
         for button in self._buttons.values():
             button.configure(
                 fg_color="transparent",
+                hover_color=theme.colour("hover"),
                 text_color=theme.colour("text"),
                 font=self._fonts.body,
             )

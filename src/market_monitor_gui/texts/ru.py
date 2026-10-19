@@ -158,9 +158,10 @@ OVERVIEW_GROUPS_VALUE: Final[str] = "включено {enabled} из {total}"
 OVERVIEW_PRODUCTS_VALUE: Final[str] = "всего {total}, активных {active}, отсутствует {missing}"
 OVERVIEW_DELIVERIES_VALUE: Final[str] = "в очереди {pending}, с ошибкой {failed}"
 OVERVIEW_WORKER_VALUE: Final[str] = "статус: {status}"
-OVERVIEW_WORKER_UNKNOWN: Final[str] = "○ нет данных"
 OVERVIEW_WORKER_ALIVE: Final[str] = "● работает"
+OVERVIEW_WORKER_ALIVE_DETAIL: Final[str] = "● работает — {status}"
 OVERVIEW_WORKER_DEAD: Final[str] = "○ не отвечает"
+OVERVIEW_WORKER_UNKNOWN: Final[str] = "○ нет данных"
 OVERVIEW_SCAN_NEVER: Final[str] = "нет данных"
 OVERVIEW_SCAN_RUN: Final[str] = "последний запуск: {status}"
 OVERVIEW_EMPTY_HINT: Final[str] = "Нажмите «Обновить», чтобы загрузить данные."
@@ -277,6 +278,13 @@ def fmt_overview_worker(status: str | None) -> str:
     if not status:
         return OVERVIEW_WORKER_UNKNOWN
     return OVERVIEW_WORKER_VALUE.format(status=status)
+
+
+def fmt_overview_worker_alive(status: str | None) -> str:
+    """Format the alive-worker value, appending the free-form status when present."""
+    if not status:
+        return OVERVIEW_WORKER_ALIVE
+    return OVERVIEW_WORKER_ALIVE_DETAIL.format(status=status)
 
 
 def fmt_overview_scan_run(status: str) -> str:
