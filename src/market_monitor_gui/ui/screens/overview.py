@@ -1,0 +1,130 @@
+"""Overview screen: read-only dashboard cards with loading/error/cached states.
+
+Rendering only: the shell fetches data through the task runner and hands this screen
+an :class:`OverviewData`. Card values are formatted by
+:mod:`market_monitor_gui.ui.overview_view` (Tk-free, headless-testable).
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+
+import customtkinter as ctk
+
+from market_monitor_gui.services.overview import OverviewData
+from market_monitor_gui.texts import ru
+from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.overview_view import overview_cards, scan_run_line
+from market_monitor_gui.ui.screens.base import ScreenFrame
+
+
+class OverviewScreen(ScreenFrame):
+    """Shows the main aggregates refreshed through the shell's task runner."""
+
+    def __init__(
+        self,
+        master: ctk.CTkFrame,
+        *,
+        fonts: theme.Fonts,
+        on_refresh: Callable[[], None],
+        on_check: Callable[[], None],
+    ) -> None:
+        super().__init__(master, title=ru.SIDEBAR_OVERVIEW, fonts=fonts)
+
+        toolbar = ctk.CTkFrame(self.body, fg_color="transparent")
+        toolbar.pack(fill="x")
+        self._refresh_button = ctk.CTkButton(toolbar, text=ru.ACTION_REFRESH, command=on_refresh)
+        self._refresh_button.pack(side="left")
+        ctk.CTkButton(
+            toolbar,
+            text=ru.MENU_CHECK_CONNECTION,
+            fg_color="transparent",
+            hover_color=theme.colour("muted"),
+            command=on_check,
+        ).pack(side="left", padx=theme.PAD_S)
+
+        self._banner = ctk.CTkLabel(
+            self.body,
+            text="",
+            font=fonts.small,
+            text_color=theme.colour("warn"),
+            wraplength=640,
+            justify="left",
+            anchor="w",
+        )
+        self._banner.pack(fill="x", pady=(theme.PAD_S, theme.PAD_S))
+
+        self._cards = ctk.CTkFrame(self.body, fg_color="transparent")
+        self._cards.pack(fill="both", expand=True)
+        self._cards.grid_columnconfigure(0, weight=1)
+        self._cards.grid_columnconfigure(1, weight=1)
+
+        self._scan_line = ctk.CTkLabel(
+            self.body,
+            text="",
+            font=fonts.small,
+            text_color=theme.colour("muted"),
+            anchor="w",
+        )
+        self._scan_line.pack(fill="x", pady=(theme.PAD_S, 0))
+
+        self.show_empty_hint()
+
+    # -- state ----------------------------------------------------------------
+
+    def set_busy(self, busy: bool) -> None:
+        self._refresh_button.configure(state="disabled" if busy else "normal")
+
+    def set_loading(self) -> None:
+        self._banner.configure(text=ru.OVERVIEW_LOADING, text_color=theme.colour("muted"))
+        self.set_busy(True)
+
+    def show_empty_hint(self) -> None:
+        self._banner.configure(text=ru.OVERVIEW_EMPTY_HINT, text_color=theme.colour("muted"))
+
+    def render(self, data: OverviewData) -> None:
+        """Render the fetched data, labelling cached/stale values with a time."""
+        self._render_cards(data)
+        if data.from_cache:
+            self._banner.configure(
+                text=ru.fmt_data_cached(data.cached_at), text_color=theme.colour("warn")
+            )
+        else:
+            self._banner.configure(text="", text_color=theme.colour("warn"))
+        line = scan_run_line(data)
+        self._scan_line.configure(text=line or "")
+        self.set_busy(False)
+
+    def show_error(self, text_key: str) -> None:
+        self._banner.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
+        self.set_busy(False)
+
+    # -- internals ------------------------------------------------------------
+
+    def _render_cards(self, data: OverviewData) -> None:
+        for child in self._cards.winfo_children():
+            child.destroy()
+        for index, card in enumerate(overview_cards(data)):
+            frame = ctk.CTkFrame(self._cards)
+            frame.grid(
+                row=index // 2,
+                column=index % 2,
+                sticky="nsew",
+                padx=theme.PAD_XS,
+                pady=theme.PAD_XS,
+            )
+            ctk.CTkLabel(
+                frame,
+                text=card.title,
+                font=self._fonts.small,
+                text_color=theme.colour("muted"),
+                anchor="w",
+            ).pack(fill="x", padx=theme.PAD_M, pady=(theme.PAD_S, 0))
+            ctk.CTkLabel(
+                frame,
+                text=card.value,
+                font=self._fonts.body,
+                anchor="w",
+                justify="left",
+                wraplength=280,
+            ).pack(fill="x", padx=theme.PAD_M, pady=(0, theme.PAD_S))

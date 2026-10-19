@@ -14,6 +14,7 @@ Ruff's ambiguous-Unicode rules are disabled for this file only (see ``pyproject.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from types import MappingProxyType
 from typing import Final
 
@@ -35,6 +36,7 @@ MENU_CONNECTION_SETTINGS: Final[str] = "Настройки подключени�
 MENU_CHECK_CONNECTION: Final[str] = "Проверить соединение"
 MENU_LOGOUT: Final[str] = "Выйти"
 MENU_ABOUT: Final[str] = "О программе"
+MENU_BUTTON: Final[str] = "Меню"
 
 # --- Common actions ----------------------------------------------------------
 
@@ -97,6 +99,88 @@ ERR_SERVER: Final[str] = "Ошибка на сервере. Повторите �
 ERR_BAD_RESPONSE: Final[str] = "Сервер вернул неожиданный ответ."
 ERR_NO_SECRET: Final[str] = "Секрет приложения не задан. Войдите заново."
 ERR_SECRET_REQUIRED: Final[str] = "Введите секрет приложения."
+ERR_UNEXPECTED: Final[str] = "Непредвиденная ошибка. Повторите действие."
+ERR_SECRET_SAVE: Final[str] = "Не удалось сохранить секрет. Проверьте права на папку данных."
+ERR_NO_DISPLAY: Final[str] = "Не удалось запустить графический интерфейс: нет доступного дисплея."
+
+# --- Connection settings dialog ----------------------------------------------
+
+CONN_TITLE: Final[str] = "Настройки подключения"
+CONN_ORIGIN_LABEL: Final[str] = "Адрес API"
+CONN_ORIGIN_HELP: Final[str] = (
+    "Укажите адрес сервера. Используйте https://. "
+    "Обычный http:// допускается только для локальной разработки "
+    "(localhost, 127.0.0.1, ::1)."
+)
+CONN_ORIGIN_INVALID: Final[str] = "Некорректный адрес. Пример: https://api.example.org"
+CONN_WRN_NOT_HTTPS: Final[str] = (
+    "Внимание: соединение без шифрования (http://). Используйте https:// вне локальной разработки."
+)
+CONN_CUSTOM_ORIGIN_WARNING: Final[str] = (
+    "Указан адрес, отличный от адреса по умолчанию. Убедитесь, что это ваш сервер, "
+    "прежде чем сохранять секрет."
+)
+CONN_SECRET_LABEL: Final[str] = "Секрет приложения"
+CONN_SAVE_SECRET: Final[str] = "Сохранить секрет на этом компьютере"
+CONN_SAVED: Final[str] = "Настройки подключения сохранены."
+CONN_ORIGIN_CHANGED_RELOGIN: Final[str] = "Адрес изменён. Войдите заново."
+
+# --- About dialog ------------------------------------------------------------
+
+ABOUT_TITLE: Final[str] = "О программе"
+ABOUT_VERSION_LABEL: Final[str] = "Версия"
+
+# --- Status bar messages -----------------------------------------------------
+
+STATUS_LAST_REFRESH: Final[str] = "Обновлено: {when}"
+STATUS_NEVER_REFRESHED: Final[str] = "Данные ещё не загружались"
+
+# --- Screen stubs (until the screens batch) ----------------------------------
+
+SCREEN_STUB_TITLE: Final[str] = "Раздел в разработке"
+SCREEN_STUB_HINT: Final[str] = "Функции этого раздела появятся в следующих версиях."
+OVERVIEW_LOADING: Final[str] = "Загрузка данных…"
+OVERVIEW_SUMMARY: Final[str] = "Группы: включено {enabled} из {total}"
+
+# --- Overview screen ---------------------------------------------------------
+
+OVERVIEW_CARD_GROUPS: Final[str] = "Группы"
+OVERVIEW_CARD_PRODUCTS: Final[str] = "Товары"
+OVERVIEW_CARD_DELIVERIES: Final[str] = "Доставки"
+OVERVIEW_CARD_WORKER: Final[str] = "Воркер"
+OVERVIEW_CARD_LAST_SCAN: Final[str] = "Последний успешный скан"
+OVERVIEW_GROUPS_VALUE: Final[str] = "включено {enabled} из {total}"
+OVERVIEW_PRODUCTS_VALUE: Final[str] = "всего {total}, активных {active}, отсутствует {missing}"
+OVERVIEW_DELIVERIES_VALUE: Final[str] = "в очереди {pending}, с ошибкой {failed}"
+OVERVIEW_WORKER_VALUE: Final[str] = "статус: {status}"
+OVERVIEW_WORKER_UNKNOWN: Final[str] = "○ нет данных"
+OVERVIEW_WORKER_ALIVE: Final[str] = "● работает"
+OVERVIEW_WORKER_DEAD: Final[str] = "◌ не отвечает"
+OVERVIEW_SCAN_NEVER: Final[str] = "нет данных"
+OVERVIEW_SCAN_RUN: Final[str] = "последний запуск: {status}"
+OVERVIEW_EMPTY_HINT: Final[str] = "Нажмите «Обновить», чтобы загрузить данные."
+DATA_CACHED: Final[str] = "Данные из кэша, обновлено {when}"
+
+# --- Groups screen -----------------------------------------------------------
+
+GROUPS_LOADING: Final[str] = "Загрузка групп…"
+GROUPS_EMPTY: Final[str] = "Групп пока нет. Добавьте первую."
+GROUPS_COUNT: Final[str] = "Групп: {count}"
+GROUPS_SAVED: Final[str] = "Группа сохранена."
+GROUPS_DELETED: Final[str] = "Группа удалена."
+GROUP_EDITOR_TITLE_ADD: Final[str] = "Добавить группу"
+GROUP_EDITOR_TITLE_EDIT: Final[str] = "Изменить группу"
+GROUP_NAME_LABEL: Final[str] = "Название"
+GROUP_URL_LABEL: Final[str] = "Ссылка"
+GROUP_ENABLED_LABEL: Final[str] = "Группа включена"
+GROUP_NAME_REQUIRED: Final[str] = "Введите название группы."
+GROUP_NAME_TOO_LONG: Final[str] = "Название не должно превышать 200 символов."
+GROUP_URL_REQUIRED: Final[str] = "Введите ссылку на группу."
+GROUP_URL_INVALID: Final[str] = "Ссылка должна начинаться с http:// или https://"
+GROUP_STATE_ENABLED: Final[str] = "● Включена"
+GROUP_STATE_DISABLED: Final[str] = "○ Выключена"
+CONFIRM_DELETE_TITLE: Final[str] = "Удаление группы"
+CONFIRM_DELETE_WARNING: Final[str] = "Действие нельзя отменить."
 
 # --- Screen placeholders (empty until the screens batch) ---------------------
 
@@ -142,3 +226,76 @@ def text_for(key: str) -> str:
         return TEXT_KEYS[key]
     except KeyError:
         raise KeyError(f"unknown text key: {key}") from None
+
+
+def fmt_version(version: str) -> str:
+    """Format the application version for the About dialog."""
+    return f"{ABOUT_VERSION_LABEL}: {version}"
+
+
+def fmt_last_refresh(when: datetime | None) -> str:
+    """Format the last successful refresh time, or a placeholder when never refreshed."""
+    if when is None:
+        return STATUS_NEVER_REFRESHED
+    return STATUS_LAST_REFRESH.format(when=when.astimezone().strftime("%d.%m.%Y %H:%M"))
+
+
+def fmt_overview_summary(total: int, enabled: int) -> str:
+    """Format the Overview summary line."""
+    return OVERVIEW_SUMMARY.format(total=total, enabled=enabled)
+
+
+def fmt_datetime(when: datetime | None) -> str:
+    """Format a date/time as ``dd.mm.yyyy HH:MM``, or an empty string when absent."""
+    if when is None:
+        return ""
+    return when.astimezone().strftime("%d.%m.%Y %H:%M")
+
+
+def fmt_overview_groups(enabled: int, total: int) -> str:
+    """Format the Overview groups value."""
+    return OVERVIEW_GROUPS_VALUE.format(enabled=enabled, total=total)
+
+
+def fmt_overview_products(total: int, active: int, missing: int) -> str:
+    """Format the Overview products value."""
+    return OVERVIEW_PRODUCTS_VALUE.format(total=total, active=active, missing=missing)
+
+
+def fmt_overview_deliveries(pending: int, failed: int) -> str:
+    """Format the Overview deliveries value."""
+    return OVERVIEW_DELIVERIES_VALUE.format(pending=pending, failed=failed)
+
+
+def fmt_overview_worker(status: str | None) -> str:
+    """Format the Overview worker status value, or a placeholder when absent."""
+    if not status:
+        return OVERVIEW_WORKER_UNKNOWN
+    return OVERVIEW_WORKER_VALUE.format(status=status)
+
+
+def fmt_overview_scan_run(status: str) -> str:
+    """Format the secondary Overview line describing the latest scan run."""
+    return OVERVIEW_SCAN_RUN.format(status=status)
+
+
+def fmt_scan_time(when: datetime | None) -> str:
+    """Format the last successful scan time, or a placeholder when never scanned."""
+    formatted = fmt_datetime(when)
+    return formatted or OVERVIEW_SCAN_NEVER
+
+
+def fmt_data_cached(when: datetime | None) -> str:
+    """Format the cached-data note shown when offline data is displayed."""
+    formatted = fmt_datetime(when)
+    return DATA_CACHED.format(when=formatted or "—")
+
+
+def fmt_groups_count(count: int) -> str:
+    """Format the Groups count line."""
+    return GROUPS_COUNT.format(count=count)
+
+
+def fmt_confirm_delete_group(name: str) -> str:
+    """Format the destructive confirmation question naming the group."""
+    return f"Удалить группу «{name}»?"
