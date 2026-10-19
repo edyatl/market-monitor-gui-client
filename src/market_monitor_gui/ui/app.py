@@ -49,13 +49,13 @@ from market_monitor_gui.ui.dialogs.group_editor import GroupEditorDialog
 from market_monitor_gui.ui.dialogs.login import LoginDialog
 from market_monitor_gui.ui.forms import FilterFormValues, GroupFormValues, login_error_text
 from market_monitor_gui.ui.menu import AppMenu, MenuAction
-from market_monitor_gui.ui.navigation import SCREEN_LABELS, SCREEN_ORDER, Screen, screen_from_value
+from market_monitor_gui.ui.navigation import SCREEN_ORDER, Screen, screen_from_value
 from market_monitor_gui.ui.screens.auth import AuthScreen
 from market_monitor_gui.ui.screens.base import ScreenFrame
 from market_monitor_gui.ui.screens.filters import FiltersScreen
 from market_monitor_gui.ui.screens.groups import GroupsScreen
+from market_monitor_gui.ui.screens.help import HelpScreen
 from market_monitor_gui.ui.screens.overview import OverviewScreen
-from market_monitor_gui.ui.screens.placeholder import PlaceholderScreen
 from market_monitor_gui.ui.screens.settings import SettingsScreen
 from market_monitor_gui.ui.sidebar import Sidebar
 from market_monitor_gui.ui.status_bar import StatusBar
@@ -151,14 +151,13 @@ class Shell(ctk.CTk):
             on_add=self._open_filter_editor,
             on_delete=self._confirm_delete_filter,
         )
+        self._help_screen = HelpScreen(self._content, fonts=self._fonts)
         self._screens = {
             Screen.OVERVIEW: self._overview,
             Screen.GROUPS: self._groups_screen,
             Screen.SETTINGS: self._settings_screen,
             Screen.FILTERS: self._filters_screen,
-            Screen.HELP: PlaceholderScreen(
-                self._content, title=SCREEN_LABELS[Screen.HELP], fonts=self._fonts
-            ),
+            Screen.HELP: self._help_screen,
         }
         for frame in (self._auth_screen, *self._screens.values()):
             frame.grid(row=0, column=0, sticky="nsew")
