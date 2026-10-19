@@ -188,6 +188,37 @@ GROUP_STATE_DISABLED: Final[str] = "○ Выключена"
 CONFIRM_DELETE_TITLE: Final[str] = "Удаление группы"
 CONFIRM_DELETE_WARNING: Final[str] = "Действие нельзя отменить."
 
+# --- Settings screen ---------------------------------------------------------
+
+SETTINGS_THRESHOLD_HINT: Final[str] = (
+    "Порог снижения цены в процентах. Значение действует на сервере глобально — "
+    "для всех операторов."
+)
+SETTINGS_THRESHOLD_REQUIRED: Final[str] = "Укажите порог снижения цены."
+SETTINGS_THRESHOLD_NOT_A_NUMBER: Final[str] = "Введите число, например 7,5."
+SETTINGS_THRESHOLD_OUT_OF_RANGE: Final[str] = "Порог должен быть от 0,1 до 100 %."
+SETTINGS_LOADING: Final[str] = "Загрузка настроек…"
+SETTINGS_SAVED: Final[str] = "Настройки сохранены."
+
+# --- Filters screen (exclusions) ---------------------------------------------
+
+FILTERS_LOADING: Final[str] = "Загрузка исключений…"
+FILTERS_EMPTY: Final[str] = "Исключений пока нет. Добавьте первое."
+FILTERS_COUNT: Final[str] = "Исключений: {count}"
+FILTERS_SAVED: Final[str] = "Исключение добавлено."
+FILTERS_DELETED: Final[str] = "Исключение удалено."
+FILTER_EDITOR_TITLE_ADD: Final[str] = "Добавить исключение"
+FILTER_PHRASE_LABEL: Final[str] = "Фраза"
+FILTER_PHRASE_HINT: Final[str] = (
+    "Товары с этой фразой исключаются из обработки. Регистр и пробелы нормализуются на сервере."
+)
+FILTER_PHRASE_REQUIRED: Final[str] = "Введите фразу-исключение."
+FILTER_PHRASE_TOO_LONG: Final[str] = "Фраза не должна превышать 500 символов."
+FILTER_NORMALIZED_VALUE: Final[str] = "Нормализованная форма: {phrase}"
+FILTER_STATE_ENABLED: Final[str] = "● Включено"
+FILTER_STATE_DISABLED: Final[str] = "○ Выключено"
+CONFIRM_DELETE_FILTER_TITLE: Final[str] = "Удаление исключения"
+
 # --- Screen placeholders (empty until the screens batch) ---------------------
 
 EMPTY_OVERVIEW: Final[str] = ""
@@ -312,3 +343,18 @@ def fmt_groups_count(count: int) -> str:
 def fmt_confirm_delete_group(name: str) -> str:
     """Format the destructive confirmation question naming the group."""
     return f"Удалить группу «{name}»?"
+
+
+def fmt_filters_count(count: int) -> str:
+    """Format the Filters count line."""
+    return FILTERS_COUNT.format(count=count)
+
+
+def fmt_filter_normalized(phrase: str) -> str:
+    """Format the normalized-phrase note for a filter row."""
+    return FILTER_NORMALIZED_VALUE.format(phrase=phrase)
+
+
+def fmt_confirm_delete_filter(phrase: str) -> str:
+    """Format the destructive confirmation question naming the exclusion phrase."""
+    return f"Удалить исключение «{phrase}»?"
