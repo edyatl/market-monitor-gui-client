@@ -11,7 +11,7 @@ import pytest
 from market_monitor_gui.api.client import ApiClient
 from market_monitor_gui.api.errors import ApiError, ErrorKind
 from market_monitor_gui.auth.session import SessionManager
-from market_monitor_gui.db.cache import CacheKey, CacheStore
+from market_monitor_gui.db.cache import CacheKey, CacheStore, JsonValue
 from market_monitor_gui.db.database import Database
 from market_monitor_gui.services.overview import load_overview
 
@@ -19,7 +19,7 @@ pytestmark = pytest.mark.unit
 
 ORIGIN = "https://api.test.example"
 
-SUMMARY = {
+SUMMARY: JsonValue = {
     "groups_total": 5,
     "groups_enabled": 3,
     "products_total": 100,
@@ -32,7 +32,7 @@ SUMMARY = {
     "last_successful_scan_at": "2026-10-18T10:00:00+00:00",
 }
 
-HEALTH = {
+HEALTH: JsonValue = {
     "worker": {
         "worker_id": "w1",
         "status": "running",
@@ -122,6 +122,7 @@ def test_caches_summary_on_success(tmp_path: Path) -> None:
     load_overview(session, api, cache)
     entry = cache.load(ORIGIN, CacheKey.DASHBOARD_SUMMARY.value)
     assert entry is not None
+    assert isinstance(entry.payload, dict)
     assert entry.payload["groups_total"] == 5
 
 

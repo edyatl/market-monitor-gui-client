@@ -48,6 +48,7 @@ PALETTE: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
         "accent": ("#0969da", "#2f81f7"),
         "text": ("#1a1a1a", "#dce4ee"),
         "on_accent": ("#ffffff", "#ffffff"),
+        "hover": ("#e3e8ee", "#343a40"),
     }
 )
 
@@ -55,6 +56,20 @@ PALETTE: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
 def colour(name: str) -> tuple[str, str]:
     """Return the ``(light, dark)`` tuple for a semantic colour name."""
     return PALETTE[name]
+
+
+def secondary_button() -> dict[str, object]:
+    """Keyword args for a low-emphasis (ghost) button.
+
+    Uses a transparent fill with explicit text/hover colours so labels stay readable on
+    the light default background (the raw CustomTkinter default is a light grey that is
+    unreadable on white). Primary actions keep their filled accent styling.
+    """
+    return {
+        "fg_color": "transparent",
+        "text_color": colour("text"),
+        "hover_color": colour("hover"),
+    }
 
 
 def apply_appearance(mode: str) -> str:

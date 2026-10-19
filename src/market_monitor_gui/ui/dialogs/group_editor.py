@@ -63,9 +63,8 @@ class GroupEditorDialog(BaseDialog):
         ctk.CTkButton(
             buttons,
             text=ru.ACTION_CANCEL,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=self.close,
+            **theme.secondary_button(),
         ).pack(side="left", padx=theme.PAD_S)
 
         self.after(50, self._name_entry.focus_set)

@@ -70,9 +70,8 @@ class ConfirmDeleteDialog(BaseDialog):
         self._cancel_button = ctk.CTkButton(
             buttons,
             text=ru.ACTION_CANCEL,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=self.close,
+            **theme.secondary_button(),
         )
         self._cancel_button.pack(side="left")
         self._confirm_button = ctk.CTkButton(
@@ -111,8 +110,7 @@ class ConfirmDeleteDialog(BaseDialog):
             self._alternative = ctk.CTkButton(
                 self._confirm_button.master,
                 text=action_label,
-                fg_color="transparent",
-                hover_color=theme.colour("muted"),
                 command=on_action,
+                **theme.secondary_button(),
             )
             self._alternative.pack(side="right")

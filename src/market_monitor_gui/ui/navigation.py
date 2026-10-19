@@ -21,8 +21,8 @@ class Screen(StrEnum):
 SCREEN_ORDER: tuple[Screen, ...] = (
     Screen.OVERVIEW,
     Screen.GROUPS,
-    Screen.SETTINGS,
     Screen.FILTERS,
+    Screen.SETTINGS,
     Screen.HELP,
 )
 

@@ -54,9 +54,8 @@ class GroupsScreen(ScreenFrame):
         self._refresh_button = ctk.CTkButton(
             toolbar,
             text=ru.ACTION_REFRESH,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=on_refresh,
+            **theme.secondary_button(),
         )
         self._refresh_button.pack(side="left", padx=theme.PAD_S)
 
@@ -190,9 +189,8 @@ class _GroupRow(ctk.CTkFrame):
             text=ru.ACTION_EDIT,
             width=90,
             font=fonts.small,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=lambda: on_edit(group),
+            **theme.secondary_button(),
         )
         self._edit.pack(side="left", padx=theme.PAD_XS)
         self._toggle = ctk.CTkButton(

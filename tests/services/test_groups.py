@@ -12,7 +12,7 @@ import pytest
 from market_monitor_gui.api.client import ApiClient
 from market_monitor_gui.api.errors import ApiError, ErrorKind
 from market_monitor_gui.auth.session import SessionManager
-from market_monitor_gui.db.cache import CacheKey, CacheStore
+from market_monitor_gui.db.cache import CacheKey, CacheStore, JsonValue
 from market_monitor_gui.db.database import Database
 from market_monitor_gui.services.groups import (
     create_group,
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.unit
 
 ORIGIN = "https://api.test.example"
 
-GROUP = {
+GROUP: JsonValue = {
     "id": 1,
     "name": "G1",
     "url": "https://shop.example/1",

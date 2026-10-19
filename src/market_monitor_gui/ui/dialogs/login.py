@@ -57,17 +57,15 @@ class LoginDialog(BaseDialog):
         ctk.CTkButton(
             buttons,
             text=ru.ACTION_CANCEL,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=self.close,
+            **theme.secondary_button(),
         ).pack(side="left", padx=theme.PAD_S)
         if self._on_open_connection is not None:
             ctk.CTkButton(
                 buttons,
                 text=ru.MENU_CONNECTION_SETTINGS,
-                fg_color="transparent",
-                hover_color=theme.colour("muted"),
                 command=self._open_connection,
+                **theme.secondary_button(),
             ).pack(side="right")
 
         self.after(50, self._entry.focus_set)

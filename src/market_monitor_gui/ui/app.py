@@ -100,7 +100,7 @@ class Shell(ctk.CTk):
         self.grid_columnconfigure(0, minsize=theme.SIDEBAR_WIDTH)
         self.grid_columnconfigure(1, weight=1)
         self._sidebar = Sidebar(self, fonts=self._fonts, on_select=self._select_screen)
-        self._sidebar.grid(row=0, column=0, sticky="nsw")
+        self._sidebar.grid(row=0, column=0, sticky="nsew")
         self._content = ctk.CTkFrame(self, corner_radius=0)
         self._content.grid(row=0, column=1, sticky="nsew")
         self._content.grid_rowconfigure(0, weight=1)
@@ -304,7 +304,7 @@ class Shell(ctk.CTk):
             on_save=lambda origin, secret, save: self._save_connection(
                 dialog, origin, secret, save
             ),
-            on_check=self._check_connection,
+            on_check=lambda origin: self._check_connection(origin, dialog=dialog),
         )
         self._connection_dialog = dialog
         dialog.show_modal()
@@ -348,7 +348,9 @@ class Shell(ctk.CTk):
 
     # -- health / overview ----------------------------------------------------
 
-    def _check_connection(self, origin: str | None = None) -> None:
+    def _check_connection(
+        self, origin: str | None = None, *, dialog: ConnectionDialog | None = None
+    ) -> None:
         target = origin or self._ctx.api.origin
         self._set_status(ConnectionState.CONNECTING)
 
@@ -362,17 +364,28 @@ class Shell(ctk.CTk):
                 temporary.close()
 
         self._ctx.runner.submit(
-            probe, on_ok=self._check_succeeded, on_err=self._check_failed, key="check"
+            probe,
+            on_ok=lambda _response: self._check_succeeded(dialog),
+            on_err=lambda exc: self._check_failed(exc, dialog),
+            key="check",
         )
 
-    def _check_succeeded(self, _response: LiveResponse) -> None:
+    def _check_succeeded(self, dialog: ConnectionDialog | None) -> None:
         self._set_status(ConnectionState.CONNECTED)
-        self._status_bar.set_message(None)
-        self._status_bar.set_last_refresh(datetime.now(UTC))
+        if self._dialog_alive(dialog):
+            assert dialog is not None
+            dialog.show_check_result(True, ru.STATUS_CHECK_OK)
+        else:
+            self._flash_message(ru.STATUS_CHECK_OK)
 
-    def _check_failed(self, exc: BaseException) -> None:
+    def _check_failed(self, exc: BaseException, dialog: ConnectionDialog | None) -> None:
         self._set_status(state_for_error(exc) or ConnectionState.OFFLINE)
-        self._status_bar.set_message(ru.text_for(text_key_for_exception(exc)))
+        text_key = text_key_for_exception(exc)
+        if self._dialog_alive(dialog):
+            assert dialog is not None
+            dialog.show_check_result(False, ru.text_for(text_key))
+        else:
+            self._flash_message(ru.text_for(text_key))
 
     def _refresh_overview(self) -> None:
         if self._session.state is not SessionState.SIGNED_IN:

@@ -37,8 +37,7 @@ class Sidebar(ctk.CTkFrame):
                 text=SCREEN_LABELS[screen],
                 anchor="w",
                 font=fonts.body,
-                fg_color="transparent",
-                hover_color=theme.colour("muted"),
+                **theme.secondary_button(),
                 command=lambda selected=screen: self._on_select(selected),
             )
             button.pack(fill="x", padx=theme.PAD_S, pady=theme.PAD_XS)

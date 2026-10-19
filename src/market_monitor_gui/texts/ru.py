@@ -34,7 +34,7 @@ SIDEBAR_HELP: Final[str] = "Помощь"
 
 MENU_CONNECTION_SETTINGS: Final[str] = "Настройки подключения"
 MENU_CHECK_CONNECTION: Final[str] = "Проверить соединение"
-MENU_LOGOUT: Final[str] = "Выйти"
+MENU_LOGOUT: Final[str] = "Завершить сеанс"
 MENU_ABOUT: Final[str] = "О программе"
 MENU_BUTTON: Final[str] = "Меню"
 
@@ -58,9 +58,9 @@ ACTION_DISABLE_GROUP: Final[str] = "Отключить группу"
 
 STATUS_CONNECTING: Final[str] = "○ Подключение…"
 STATUS_CONNECTED: Final[str] = "● Подключено"
-STATUS_RETRYING: Final[str] = "◌ Повторная попытка…"
+STATUS_RETRYING: Final[str] = "○ Повторная попытка…"
 STATUS_OFFLINE: Final[str] = "○ Нет связи"
-STATUS_SESSION_EXPIRED: Final[str] = "◍ Сессия истекла"
+STATUS_SESSION_EXPIRED: Final[str] = "○ Сессия истекла"
 
 # --- Login dialog ------------------------------------------------------------
 
@@ -135,6 +135,11 @@ ABOUT_VERSION_LABEL: Final[str] = "Версия"
 STATUS_LAST_REFRESH: Final[str] = "Обновлено: {when}"
 STATUS_NEVER_REFRESHED: Final[str] = "Данные ещё не загружались"
 
+# --- Check connection feedback -----------------------------------------------
+
+STATUS_CHECK_OK: Final[str] = "Соединение в порядке."
+CHECK_IN_PROGRESS: Final[str] = "Проверка соединения…"
+
 # --- Screen stubs (until the screens batch) ----------------------------------
 
 SCREEN_STUB_TITLE: Final[str] = "Раздел в разработке"
@@ -155,7 +160,7 @@ OVERVIEW_DELIVERIES_VALUE: Final[str] = "в очереди {pending}, с оши�
 OVERVIEW_WORKER_VALUE: Final[str] = "статус: {status}"
 OVERVIEW_WORKER_UNKNOWN: Final[str] = "○ нет данных"
 OVERVIEW_WORKER_ALIVE: Final[str] = "● работает"
-OVERVIEW_WORKER_DEAD: Final[str] = "◌ не отвечает"
+OVERVIEW_WORKER_DEAD: Final[str] = "○ не отвечает"
 OVERVIEW_SCAN_NEVER: Final[str] = "нет данных"
 OVERVIEW_SCAN_RUN: Final[str] = "последний запуск: {status}"
 OVERVIEW_EMPTY_HINT: Final[str] = "Нажмите «Обновить», чтобы загрузить данные."

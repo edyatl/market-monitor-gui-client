@@ -91,29 +91,41 @@ class ConnectionDialog(BaseDialog):
             text="",
             font=self.fonts.small,
             text_color=theme.colour("error"),
+            wraplength=460,
+            justify="left",
             anchor="w",
         )
         self._error.pack(fill="x", padx=theme.PAD_L)
+
+        self._check_label = ctk.CTkLabel(
+            self,
+            text="",
+            font=self.fonts.small,
+            wraplength=460,
+            justify="left",
+            anchor="w",
+        )
+        self._check_label.pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_XS, 0))
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
         buttons.pack(fill="x", padx=theme.PAD_L, pady=theme.PAD_L)
 
         self._save_button = ctk.CTkButton(buttons, text=ru.ACTION_SAVE, command=self._save)
         self._save_button.pack(side="left")
+        self._check_button: ctk.CTkButton | None = None
         if self._on_check is not None:
-            ctk.CTkButton(
+            self._check_button = ctk.CTkButton(
                 buttons,
                 text=ru.MENU_CHECK_CONNECTION,
-                fg_color="transparent",
-                hover_color=theme.colour("muted"),
                 command=self._check,
-            ).pack(side="left", padx=theme.PAD_S)
+                **theme.secondary_button(),
+            )
+            self._check_button.pack(side="left", padx=theme.PAD_S)
         ctk.CTkButton(
             buttons,
             text=ru.ACTION_CANCEL,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=self.close,
+            **theme.secondary_button(),
         ).pack(side="left")
 
         self.after(50, self._origin_entry.focus_set)
@@ -146,13 +158,27 @@ class ConnectionDialog(BaseDialog):
         if result.origin is None or result.error is not None:
             self._error.configure(text=ru.text_for(ru.CONN_ORIGIN_INVALID))
             return
+        self.show_checking()
         self._on_check(result.origin)
+
+    def show_checking(self) -> None:
+        """Indicate that a connection check is running."""
+        self._check_label.configure(text=ru.CHECK_IN_PROGRESS, text_color=theme.colour("muted"))
+
+    def show_check_result(self, ok: bool, text: str) -> None:
+        """Show the outcome of a connection check inline (never a silent no-op)."""
+        self._check_label.configure(
+            text=text,
+            text_color=theme.colour("ok") if ok else theme.colour("error"),
+        )
 
     def set_busy(self, busy: bool) -> None:
         state = "disabled" if busy else "normal"
         self._save_button.configure(state=state)
         self._origin_entry.configure(state=state)
         self._secret_entry.configure(state=state)
+        if self._check_button is not None:
+            self._check_button.configure(state=state)
 
     def show_error(self, text_key: str) -> None:
         self._error.configure(text=ru.text_for(text_key))

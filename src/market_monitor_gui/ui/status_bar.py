@@ -7,6 +7,7 @@ setters.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 
 import customtkinter as ctk
@@ -14,6 +15,16 @@ import customtkinter as ctk
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
 from market_monitor_gui.ui.connection_state import ConnectionState, status_text
+
+#: Semantic colour per state. Colour is only ever a supplement: the state text always
+#: carries a glyph and words (skill rule "status is never colour-only").
+_STATE_COLOUR: Mapping[ConnectionState, str] = {
+    ConnectionState.CONNECTING: "muted",
+    ConnectionState.CONNECTED: "ok",
+    ConnectionState.RETRYING: "warn",
+    ConnectionState.OFFLINE: "error",
+    ConnectionState.SESSION_EXPIRED: "warn",
+}
 
 
 class StatusBar(ctk.CTkFrame):
@@ -25,7 +36,10 @@ class StatusBar(ctk.CTkFrame):
         self._message: str | None = None
 
         self._state_label = ctk.CTkLabel(
-            self, text=status_text(ConnectionState.CONNECTING), font=fonts.body
+            self,
+            text=status_text(ConnectionState.CONNECTING),
+            font=fonts.body,
+            text_color=theme.colour(_STATE_COLOUR[ConnectionState.CONNECTING]),
         )
         self._state_label.pack(side="left", padx=theme.PAD_M, pady=theme.PAD_XS)
 
@@ -33,7 +47,9 @@ class StatusBar(ctk.CTkFrame):
         self._info_label.pack(side="right", padx=theme.PAD_M, pady=theme.PAD_XS)
 
     def set_state(self, state: ConnectionState) -> None:
-        self._state_label.configure(text=status_text(state))
+        self._state_label.configure(
+            text=status_text(state), text_color=theme.colour(_STATE_COLOUR[state])
+        )
 
     def set_message(self, message: str | None) -> None:
         self._message = message

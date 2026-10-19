@@ -38,9 +38,8 @@ class OverviewScreen(ScreenFrame):
         ctk.CTkButton(
             toolbar,
             text=ru.MENU_CHECK_CONNECTION,
-            fg_color="transparent",
-            hover_color=theme.colour("muted"),
             command=on_check,
+            **theme.secondary_button(),
         ).pack(side="left", padx=theme.PAD_S)
 
         self._banner = ctk.CTkLabel(
