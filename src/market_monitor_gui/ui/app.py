@@ -15,12 +15,18 @@ from datetime import UTC, datetime
 import customtkinter as ctk
 
 from market_monitor_gui.api.client import ApiClient
-from market_monitor_gui.api.dto import GroupResponse, LiveResponse
+from market_monitor_gui.api.dto import FilterResponse, GroupResponse, LiveResponse, SettingsResponse
 from market_monitor_gui.api.errors import ApiError, ErrorKind
 from market_monitor_gui.app import AppContext
 from market_monitor_gui.auth.session import SessionManager, SessionState
 from market_monitor_gui.services.connection import save_connection
 from market_monitor_gui.services.errors import text_key_for_exception
+from market_monitor_gui.services.filters import (
+    FiltersData,
+    create_filter,
+    delete_filter,
+    load_filters,
+)
 from market_monitor_gui.services.groups import (
     GroupsData,
     create_group,
@@ -30,6 +36,7 @@ from market_monitor_gui.services.groups import (
     update_group,
 )
 from market_monitor_gui.services.overview import OverviewData, load_overview
+from market_monitor_gui.services.settings import SettingsData, load_settings, save_settings
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
 from market_monitor_gui.ui.connection_state import ConnectionState, state_for_error
@@ -37,16 +44,19 @@ from market_monitor_gui.ui.dialogs.about import AboutDialog
 from market_monitor_gui.ui.dialogs.base import BaseDialog
 from market_monitor_gui.ui.dialogs.confirm_delete import ConfirmDeleteDialog
 from market_monitor_gui.ui.dialogs.connection import ConnectionDialog
+from market_monitor_gui.ui.dialogs.filter_editor import FilterEditorDialog
 from market_monitor_gui.ui.dialogs.group_editor import GroupEditorDialog
 from market_monitor_gui.ui.dialogs.login import LoginDialog
-from market_monitor_gui.ui.forms import GroupFormValues, login_error_text
+from market_monitor_gui.ui.forms import FilterFormValues, GroupFormValues, login_error_text
 from market_monitor_gui.ui.menu import AppMenu, MenuAction
 from market_monitor_gui.ui.navigation import SCREEN_LABELS, SCREEN_ORDER, Screen, screen_from_value
 from market_monitor_gui.ui.screens.auth import AuthScreen
 from market_monitor_gui.ui.screens.base import ScreenFrame
+from market_monitor_gui.ui.screens.filters import FiltersScreen
 from market_monitor_gui.ui.screens.groups import GroupsScreen
 from market_monitor_gui.ui.screens.overview import OverviewScreen
 from market_monitor_gui.ui.screens.placeholder import PlaceholderScreen
+from market_monitor_gui.ui.screens.settings import SettingsScreen
 from market_monitor_gui.ui.sidebar import Sidebar
 from market_monitor_gui.ui.status_bar import StatusBar
 
@@ -68,6 +78,7 @@ class Shell(ctk.CTk):
         self._connection_dialog: ConnectionDialog | None = None
         self._group_editor: GroupEditorDialog | None = None
         self._confirm_delete: ConfirmDeleteDialog | None = None
+        self._filter_editor: FilterEditorDialog | None = None
         self._relogin_prompt_shown = False
         self._poll_job: str | None = None
         self._message_job: str | None = None
@@ -127,15 +138,24 @@ class Shell(ctk.CTk):
             on_toggle=self._toggle_group,
             on_delete=self._confirm_delete_group,
         )
+        self._settings_screen = SettingsScreen(
+            self._content,
+            fonts=self._fonts,
+            on_refresh=self._refresh_settings,
+            on_save=self._save_settings,
+        )
+        self._filters_screen = FiltersScreen(
+            self._content,
+            fonts=self._fonts,
+            on_refresh=self._refresh_filters,
+            on_add=self._open_filter_editor,
+            on_delete=self._confirm_delete_filter,
+        )
         self._screens = {
             Screen.OVERVIEW: self._overview,
             Screen.GROUPS: self._groups_screen,
-            Screen.SETTINGS: PlaceholderScreen(
-                self._content, title=SCREEN_LABELS[Screen.SETTINGS], fonts=self._fonts
-            ),
-            Screen.FILTERS: PlaceholderScreen(
-                self._content, title=SCREEN_LABELS[Screen.FILTERS], fonts=self._fonts
-            ),
+            Screen.SETTINGS: self._settings_screen,
+            Screen.FILTERS: self._filters_screen,
             Screen.HELP: PlaceholderScreen(
                 self._content, title=SCREEN_LABELS[Screen.HELP], fonts=self._fonts
             ),
@@ -191,12 +211,20 @@ class Shell(ctk.CTk):
             self._refresh_overview()
         elif screen is Screen.GROUPS:
             self._refresh_groups()
+        elif screen is Screen.SETTINGS:
+            self._refresh_settings()
+        elif screen is Screen.FILTERS:
+            self._refresh_filters()
 
     def _refresh_current(self) -> None:
         if self._current_screen is Screen.OVERVIEW:
             self._refresh_overview()
         elif self._current_screen is Screen.GROUPS:
             self._refresh_groups()
+        elif self._current_screen is Screen.SETTINGS:
+            self._refresh_settings()
+        elif self._current_screen is Screen.FILTERS:
+            self._refresh_filters()
 
     def _show_auth(self) -> None:
         self._current_screen = None
@@ -577,6 +605,145 @@ class Shell(ctk.CTk):
     def _disable_from_conflict(self, dialog: ConfirmDeleteDialog, group: GroupResponse) -> None:
         dialog.close()
         self._toggle_group(group)
+
+    # -- settings -------------------------------------------------------------
+
+    def _refresh_settings(self) -> None:
+        if self._session.state is not SessionState.SIGNED_IN:
+            return
+        self._settings_screen.set_loading()
+        self._set_status(ConnectionState.CONNECTING)
+        self._ctx.runner.submit(
+            lambda: load_settings(self._session, self._ctx.api, self._ctx.cache),
+            on_ok=self._settings_loaded,
+            on_err=self._settings_failed,
+            key="settings",
+        )
+
+    def _settings_loaded(self, data: SettingsData) -> None:
+        self._settings_screen.render(data)
+        if data.from_cache:
+            self._set_status(ConnectionState.OFFLINE)
+        else:
+            self._set_status(ConnectionState.CONNECTED)
+            self._status_bar.set_last_refresh(datetime.now(UTC))
+
+    def _settings_failed(self, exc: BaseException) -> None:
+        self._settings_screen.show_error(text_key_for_exception(exc))
+        self._set_status(state_for_error(exc) or self._status)
+
+    def _save_settings(self, value: float) -> None:
+        self._ctx.runner.submit(
+            lambda: save_settings(
+                self._session,
+                self._ctx.api,
+                self._ctx.cache,
+                price_drop_threshold_percent=value,
+            ),
+            on_ok=self._settings_saved,
+            on_err=self._settings_save_failed,
+            key="settings-save",
+        )
+
+    def _settings_saved(self, response: SettingsResponse) -> None:
+        self._settings_screen.show_saved(response.price_drop_threshold_percent)
+        self._flash_message(ru.SETTINGS_SAVED)
+        self._set_status(ConnectionState.CONNECTED)
+
+    def _settings_save_failed(self, exc: BaseException) -> None:
+        self._settings_screen.show_save_error(text_key_for_exception(exc))
+        self._set_status(state_for_error(exc) or self._status)
+
+    # -- filters (exclusions) -------------------------------------------------
+
+    def _refresh_filters(self) -> None:
+        if self._session.state is not SessionState.SIGNED_IN:
+            return
+        self._filters_screen.set_loading()
+        self._set_status(ConnectionState.CONNECTING)
+        self._ctx.runner.submit(
+            lambda: load_filters(self._session, self._ctx.api, self._ctx.cache),
+            on_ok=self._filters_loaded,
+            on_err=self._filters_failed,
+            key="filters",
+        )
+
+    def _filters_loaded(self, data: FiltersData) -> None:
+        self._filters_screen.render(data)
+        if data.from_cache:
+            self._set_status(ConnectionState.OFFLINE)
+        else:
+            self._set_status(ConnectionState.CONNECTED)
+            self._status_bar.set_last_refresh(datetime.now(UTC))
+
+    def _filters_failed(self, exc: BaseException) -> None:
+        self._filters_screen.show_error(text_key_for_exception(exc))
+        self._set_status(state_for_error(exc) or self._status)
+
+    def _open_filter_editor(self) -> None:
+        if self._dialog_alive(self._filter_editor):
+            return
+        dialog = FilterEditorDialog(
+            self,
+            fonts=self._fonts,
+            on_submit=lambda values: self._save_filter(dialog, values),
+        )
+        self._filter_editor = dialog
+        dialog.show_modal()
+
+    def _save_filter(self, dialog: FilterEditorDialog, values: FilterFormValues) -> None:
+        self._ctx.runner.submit(
+            lambda: create_filter(self._session, self._ctx.api, phrase=values.phrase),
+            on_ok=lambda _result: self._filter_saved(dialog),
+            on_err=lambda exc: self._filter_write_failed(dialog, exc),
+            key="filter-create",
+        )
+
+    def _filter_saved(self, dialog: FilterEditorDialog) -> None:
+        dialog.close()
+        self._flash_message(ru.FILTERS_SAVED)
+        self._refresh_filters()
+
+    def _filter_write_failed(self, dialog: FilterEditorDialog, exc: BaseException) -> None:
+        dialog.show_error(text_key_for_exception(exc))
+
+    def _confirm_delete_filter(self, item: FilterResponse) -> None:
+        if self._dialog_alive(self._confirm_delete):
+            return
+        dialog = ConfirmDeleteDialog(
+            self,
+            fonts=self._fonts,
+            title=ru.CONFIRM_DELETE_FILTER_TITLE,
+            question=ru.fmt_confirm_delete_filter(item.phrase),
+            confirm_label=ru.ACTION_DELETE,
+            on_confirm=lambda: self._perform_delete_filter(dialog, item),
+        )
+        self._confirm_delete = dialog
+        dialog.show_modal()
+
+    def _perform_delete_filter(self, dialog: ConfirmDeleteDialog, item: FilterResponse) -> None:
+        self._filters_screen.set_row_busy(item.id, True)
+        self._ctx.runner.submit(
+            lambda: delete_filter(self._session, self._ctx.api, item.id),
+            on_ok=lambda _result: self._filter_deleted(dialog, item),
+            on_err=lambda exc: self._filter_delete_failed(dialog, item, exc),
+            key=f"filter-delete-{item.id}",
+        )
+
+    def _filter_deleted(self, dialog: ConfirmDeleteDialog, item: FilterResponse) -> None:
+        dialog.close()
+        self._filters_screen.set_row_busy(item.id, False)
+        self._flash_message(ru.FILTERS_DELETED)
+        self._refresh_filters()
+
+    def _filter_delete_failed(
+        self, dialog: ConfirmDeleteDialog, item: FilterResponse, exc: BaseException
+    ) -> None:
+        self._filters_screen.set_row_busy(item.id, False)
+        if self._dialog_alive(dialog):
+            dialog.show_error(text_key_for_exception(exc))
+        else:
+            self._filters_screen.show_error(text_key_for_exception(exc))
 
     # -- menu / status / shutdown ---------------------------------------------
 

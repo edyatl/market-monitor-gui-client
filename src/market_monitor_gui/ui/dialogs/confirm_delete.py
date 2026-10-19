@@ -28,8 +28,9 @@ class ConfirmDeleteDialog(BaseDialog):
         question: str,
         confirm_label: str,
         on_confirm: Callable[[], None],
+        title: str = ru.CONFIRM_DELETE_TITLE,
     ) -> None:
-        super().__init__(master, title=ru.CONFIRM_DELETE_TITLE, fonts=fonts)
+        super().__init__(master, title=title, fonts=fonts)
         self._on_confirm = on_confirm
         self._alternative: ctk.CTkButton | None = None
         self._build(question, confirm_label)

@@ -6,6 +6,7 @@ without a display, and keeps operator text in :mod:`market_monitor_gui.texts.ru`
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Final
 
@@ -33,6 +34,13 @@ class OriginInput:
 
 #: Group name max length, mirroring the API contract (server remains authoritative).
 GROUP_NAME_MAX_LEN: Final[int] = 200
+
+#: Filter phrase max length, mirroring the API contract (server remains authoritative).
+FILTER_PHRASE_MAX_LEN: Final[int] = 500
+
+#: Price-drop threshold bounds (percent), mirroring the API contract.
+THRESHOLD_MIN: Final[float] = 0.1
+THRESHOLD_MAX: Final[float] = 100.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +81,65 @@ def validate_group_form(name: str, url: str, enabled: bool) -> GroupFormResult:
 def _looks_like_http_url(value: str) -> bool:
     lowered = value.lower()
     return lowered.startswith(("http://", "https://"))
+
+
+@dataclass(frozen=True, slots=True)
+class ThresholdInput:
+    """Result of validating the price-drop threshold field.
+
+    Exactly one of ``value`` (valid percent) or ``error`` (a ``ru`` text key) is set.
+    """
+
+    value: float | None
+    error: str | None
+
+
+def parse_threshold_percent(raw: str) -> ThresholdInput:
+    """Parse a percent value accepting either a comma or a dot decimal separator.
+
+    The server is authoritative; this is a fast local guard so the operator gets a
+    Russian message without a round-trip.
+    """
+    cleaned = raw.strip().replace(",", ".")
+    if not cleaned:
+        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_REQUIRED)
+    try:
+        value = float(cleaned)
+    except ValueError:
+        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_NOT_A_NUMBER)
+    if not math.isfinite(value):
+        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_NOT_A_NUMBER)
+    if not THRESHOLD_MIN <= value <= THRESHOLD_MAX:
+        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_OUT_OF_RANGE)
+    return ThresholdInput(value, None)
+
+
+@dataclass(frozen=True, slots=True)
+class FilterFormValues:
+    """Trimmed, validated exclusion-phrase form values ready for the API."""
+
+    phrase: str
+
+
+@dataclass(frozen=True, slots=True)
+class FilterFormResult:
+    """Result of validating the filter editor form.
+
+    Exactly one of ``values`` (valid) or ``error`` (a ``ru`` text key) is set.
+    """
+
+    values: FilterFormValues | None
+    error: str | None
+
+
+def validate_filter_form(phrase: str) -> FilterFormResult:
+    """Lightly validate the exclusion phrase; the server stays authoritative."""
+    clean_phrase = phrase.strip()
+    if not clean_phrase:
+        return FilterFormResult(None, ru.FILTER_PHRASE_REQUIRED)
+    if len(clean_phrase) > FILTER_PHRASE_MAX_LEN:
+        return FilterFormResult(None, ru.FILTER_PHRASE_TOO_LONG)
+    return FilterFormResult(FilterFormValues(clean_phrase), None)
 
 
 def validate_origin_input(raw: str) -> OriginInput:
