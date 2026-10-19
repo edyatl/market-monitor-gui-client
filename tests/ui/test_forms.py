@@ -10,6 +10,8 @@ from market_monitor_gui.texts import ru
 from market_monitor_gui.ui.forms import (
     custom_origin_warning,
     login_error_text,
+    parse_threshold_percent,
+    validate_filter_form,
     validate_group_form,
     validate_origin_input,
     validate_secret_input,
@@ -101,3 +103,72 @@ def test_validate_group_form_rejects_non_http_url(url: str) -> None:
     result = validate_group_form("G1", url, True)
     assert result.values is None
     assert result.error == ru.GROUP_URL_INVALID
+
+
+# -- G10 threshold ------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("7,5", 7.5),
+        ("7.5", 7.5),
+        (" 10 ", 10.0),
+        ("0,1", 0.1),
+        ("0.1", 0.1),
+        ("100", 100.0),
+        ("25", 25.0),
+    ],
+)
+def test_parse_threshold_accepts_comma_or_dot(raw: str, expected: float) -> None:
+    result = parse_threshold_percent(raw)
+    assert result.error is None
+    assert result.value == expected
+
+
+def test_parse_threshold_requires_a_value() -> None:
+    result = parse_threshold_percent("   ")
+    assert result.value is None
+    assert result.error == ru.SETTINGS_THRESHOLD_REQUIRED
+
+
+@pytest.mark.parametrize("raw", ["abc", "7,5,5", "1e", "--", "nan", "inf"])
+def test_parse_threshold_rejects_non_numbers(raw: str) -> None:
+    result = parse_threshold_percent(raw)
+    assert result.value is None
+    assert result.error == ru.SETTINGS_THRESHOLD_NOT_A_NUMBER
+
+
+@pytest.mark.parametrize("raw", ["0", "0.05", "0,05", "100.5", "101", "1000"])
+def test_parse_threshold_rejects_out_of_range(raw: str) -> None:
+    result = parse_threshold_percent(raw)
+    assert result.value is None
+    assert result.error == ru.SETTINGS_THRESHOLD_OUT_OF_RANGE
+
+
+# -- G11 filter phrase --------------------------------------------------------
+
+
+def test_validate_filter_form_accepts_and_trims() -> None:
+    result = validate_filter_form("  no spam  ")
+    assert result.error is None
+    assert result.values is not None
+    assert result.values.phrase == "no spam"
+
+
+def test_validate_filter_form_requires_phrase() -> None:
+    result = validate_filter_form("   ")
+    assert result.values is None
+    assert result.error == ru.FILTER_PHRASE_REQUIRED
+
+
+def test_validate_filter_form_rejects_overlong_phrase() -> None:
+    result = validate_filter_form("a" * 501)
+    assert result.values is None
+    assert result.error == ru.FILTER_PHRASE_TOO_LONG
+
+
+def test_validate_filter_form_accepts_exactly_the_max_length() -> None:
+    result = validate_filter_form("a" * 500)
+    assert result.values is not None
+    assert result.error is None

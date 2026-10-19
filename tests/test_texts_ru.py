@@ -82,3 +82,36 @@ def test_menu_and_sidebar_labels_exist() -> None:
         "MENU_ABOUT",
     }
     assert required <= set(ru.TEXT_KEYS)
+
+
+def test_settings_keys_exist() -> None:
+    required = {
+        "LABEL_THRESHOLD",
+        "SETTINGS_THRESHOLD_HINT",
+        "SETTINGS_THRESHOLD_REQUIRED",
+        "SETTINGS_THRESHOLD_NOT_A_NUMBER",
+        "SETTINGS_THRESHOLD_OUT_OF_RANGE",
+        "SETTINGS_LOADING",
+        "SETTINGS_SAVED",
+    }
+    assert required <= set(ru.TEXT_KEYS)
+
+
+def test_filters_keys_exist() -> None:
+    required = {
+        "FILTERS_LOADING",
+        "FILTERS_EMPTY",
+        "FILTERS_COUNT",
+        "FILTERS_SAVED",
+        "FILTERS_DELETED",
+        "FILTER_EDITOR_TITLE_ADD",
+        "FILTER_PHRASE_LABEL",
+        "FILTER_PHRASE_HINT",
+        "FILTER_PHRASE_REQUIRED",
+        "FILTER_PHRASE_TOO_LONG",
+        "FILTER_NORMALIZED_VALUE",
+        "FILTER_STATE_ENABLED",
+        "FILTER_STATE_DISABLED",
+        "CONFIRM_DELETE_FILTER_TITLE",
+    }
+    assert required <= set(ru.TEXT_KEYS)

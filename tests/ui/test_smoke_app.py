@@ -155,3 +155,32 @@ def test_menu_anchored_and_stays_open(tmp_path: Path, monkeypatch: pytest.Monkey
         shell.destroy()
     finally:
         context.close()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_settings_and_filters_are_real_screens(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """G10/G11: Settings and Filters replace their placeholders; Help stays a stub."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+    from market_monitor_gui.ui.navigation import Screen
+    from market_monitor_gui.ui.screens.filters import FiltersScreen
+    from market_monitor_gui.ui.screens.placeholder import PlaceholderScreen
+    from market_monitor_gui.ui.screens.settings import SettingsScreen
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        assert isinstance(shell._screens[Screen.SETTINGS], SettingsScreen)
+        assert isinstance(shell._screens[Screen.FILTERS], FiltersScreen)
+        assert isinstance(shell._screens[Screen.HELP], PlaceholderScreen)
+        # The screens build their controls without a display-only failure.
+        assert shell._settings_screen._entry.winfo_exists()
+        assert shell._filters_screen._add_button.winfo_exists()
+        shell.destroy()
+    finally:
+        context.close()
