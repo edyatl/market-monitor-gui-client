@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import webbrowser
 from collections.abc import Callable
 
 import pytest
@@ -46,7 +47,7 @@ def _patch_browser(
             raise behaviour
         return behaviour(url, new)
 
-    monkeypatch.setattr(links.webbrowser, "open", fake_open)
+    monkeypatch.setattr(webbrowser, "open", fake_open)
     return calls
 
 
@@ -77,7 +78,7 @@ def test_open_external_url_reports_browser_refusal(monkeypatch: pytest.MonkeyPat
 
 
 def test_open_external_url_swallows_browser_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_browser(monkeypatch, links.webbrowser.Error("no browser"))
+    _patch_browser(monkeypatch, webbrowser.Error("no browser"))
     assert links.open_external_url("https://shop.example/1") is False
 
 
