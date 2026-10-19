@@ -185,6 +185,58 @@ def test_settings_and_filters_are_real_screens(
         context.close()
 
 
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_sidebar_and_menu_show_decorative_icons(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """G13: navigation labels carry their icon glyph, and the menu button too."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.texts import ru
+    from market_monitor_gui.ui.app import Shell
+    from market_monitor_gui.ui.navigation import SCREEN_ICONS, screen_button_text
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        for screen, button in shell._sidebar._buttons.items():
+            text = str(button.cget("text"))
+            assert SCREEN_ICONS[screen] in text
+            assert text == screen_button_text(screen)
+        assert ru.MENU_ICON in str(shell._menu.button.cget("text"))
+        shell.destroy()
+    finally:
+        context.close()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_scrollable_screens_opt_into_wheel_scrolling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """G13: every scrollable screen area enables X11 wheel scrolling."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        frames = (
+            shell._groups_screen._list,
+            shell._filters_screen._list,
+            shell._help_screen._scroll,
+        )
+        for frame in frames:
+            assert frame._mm_wheel_bound is True
+        shell.destroy()
+    finally:
+        context.close()
+
+
 def _walk(widget: tk.Misc) -> list[tk.Misc]:
     """Return every descendant widget, depth-first."""
     found: list[tk.Misc] = []

@@ -58,6 +58,7 @@ def test_required_error_keys_exist() -> None:
         "ERR_BAD_RESPONSE",
         "ERR_NO_SECRET",
         "ERR_SECRET_REQUIRED",
+        "ERR_OPEN_LINK",
     }
     assert required <= set(ru.TEXT_KEYS)
 
@@ -82,6 +83,22 @@ def test_menu_and_sidebar_labels_exist() -> None:
         "MENU_ABOUT",
     }
     assert required <= set(ru.TEXT_KEYS)
+
+
+def test_navigation_icon_keys_exist_and_are_glyphs() -> None:
+    required = {
+        "SIDEBAR_ICON_OVERVIEW",
+        "SIDEBAR_ICON_GROUPS",
+        "SIDEBAR_ICON_FILTERS",
+        "SIDEBAR_ICON_SETTINGS",
+        "SIDEBAR_ICON_HELP",
+        "MENU_ICON",
+    }
+    assert required <= set(ru.TEXT_KEYS)
+    for name in required:
+        value = ru.TEXT_KEYS[name]
+        assert value != ""
+        assert not _CYRILLIC.search(value), f"{name} must be a decorative glyph, not words"
 
 
 def test_settings_keys_exist() -> None:
