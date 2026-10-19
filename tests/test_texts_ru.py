@@ -115,3 +115,25 @@ def test_filters_keys_exist() -> None:
         "CONFIRM_DELETE_FILTER_TITLE",
     }
     assert required <= set(ru.TEXT_KEYS)
+
+
+def test_help_keys_exist() -> None:
+    required = {
+        "HELP_INTRO_HEADING",
+        "HELP_INTRO_BODY",
+        "HELP_LOGIN_HEADING",
+        "HELP_LOGIN_BODY",
+        "HELP_OVERVIEW_HEADING",
+        "HELP_OVERVIEW_BODY",
+        "HELP_GROUPS_HEADING",
+        "HELP_GROUPS_BODY",
+        "HELP_THRESHOLD_HEADING",
+        "HELP_THRESHOLD_BODY",
+        "HELP_FILTERS_HEADING",
+        "HELP_FILTERS_BODY",
+        "HELP_OFFLINE_HEADING",
+        "HELP_OFFLINE_BODY",
+        "HELP_SUPPORT_HEADING",
+        "HELP_SUPPORT_BODY",
+    }
+    assert required <= set(ru.TEXT_KEYS)

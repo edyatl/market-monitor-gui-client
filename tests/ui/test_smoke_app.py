@@ -6,6 +6,7 @@ Skipped unless ``DISPLAY``/``WAYLAND_DISPLAY`` is set (e.g. under ``xvfb-run``).
 from __future__ import annotations
 
 import os
+import tkinter as tk
 from pathlib import Path
 
 import pytest
@@ -161,14 +162,13 @@ def test_menu_anchored_and_stays_open(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_settings_and_filters_are_real_screens(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """G10/G11: Settings and Filters replace their placeholders; Help stays a stub."""
+    """G10/G11: Settings and Filters replace their placeholders."""
     monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
 
     from market_monitor_gui.app import AppContext
     from market_monitor_gui.ui.app import Shell
     from market_monitor_gui.ui.navigation import Screen
     from market_monitor_gui.ui.screens.filters import FiltersScreen
-    from market_monitor_gui.ui.screens.placeholder import PlaceholderScreen
     from market_monitor_gui.ui.screens.settings import SettingsScreen
 
     context = AppContext.create()
@@ -177,10 +177,60 @@ def test_settings_and_filters_are_real_screens(
         shell.update()
         assert isinstance(shell._screens[Screen.SETTINGS], SettingsScreen)
         assert isinstance(shell._screens[Screen.FILTERS], FiltersScreen)
-        assert isinstance(shell._screens[Screen.HELP], PlaceholderScreen)
         # The screens build their controls without a display-only failure.
         assert shell._settings_screen._entry.winfo_exists()
         assert shell._filters_screen._add_button.winfo_exists()
+        shell.destroy()
+    finally:
+        context.close()
+
+
+def _walk(widget: tk.Misc) -> list[tk.Misc]:
+    """Return every descendant widget, depth-first."""
+    found: list[tk.Misc] = []
+    for child in widget.winfo_children():
+        found.append(child)
+        found.extend(_walk(child))
+    return found
+
+
+def _label_texts(widget: tk.Misc) -> list[str]:
+    """Collect the text of every CTkLabel in the widget tree (depth-first)."""
+    import customtkinter as ctk
+
+    return [str(child.cget("text")) for child in _walk(widget) if isinstance(child, ctk.CTkLabel)]
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_help_is_a_real_static_screen(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """G12: Help is a real read-only screen whose static guide is rendered."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    import customtkinter as ctk
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.texts import ru
+    from market_monitor_gui.ui.app import Shell
+    from market_monitor_gui.ui.navigation import Screen
+    from market_monitor_gui.ui.screens.help import HelpScreen
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        help_screen = shell._screens[Screen.HELP]
+        assert isinstance(help_screen, HelpScreen)
+        assert isinstance(help_screen._scroll, ctk.CTkScrollableFrame)
+
+        texts = _label_texts(help_screen)
+        assert ru.HELP_INTRO_HEADING in texts
+        assert ru.HELP_INTRO_BODY in texts
+        assert ru.HELP_SUPPORT_HEADING in texts
+        assert ru.HELP_SUPPORT_BODY in texts
+
+        # Read-only: no inputs, no buttons anywhere in the screen.
+        for child in _walk(help_screen):
+            assert not isinstance(child, (ctk.CTkEntry, ctk.CTkButton))
         shell.destroy()
     finally:
         context.close()
