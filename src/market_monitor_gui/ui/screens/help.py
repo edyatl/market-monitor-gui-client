@@ -13,6 +13,7 @@ from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
 from market_monitor_gui.ui.help_view import help_sections
 from market_monitor_gui.ui.screens.base import ScreenFrame
+from market_monitor_gui.ui.scroll import enable_wheel_scroll
 
 _BODY_WRAP_LENGTH: int = 600
 
@@ -23,9 +24,15 @@ class HelpScreen(ScreenFrame):
     def __init__(self, master: ctk.CTkFrame, *, fonts: theme.Fonts) -> None:
         super().__init__(master, title=ru.SIDEBAR_HELP, fonts=fonts)
 
-        self._scroll = ctk.CTkScrollableFrame(self.body, fg_color="transparent")
+        self._scroll = ctk.CTkScrollableFrame(
+            self.body,
+            fg_color="transparent",
+            scrollbar_fg_color="transparent",
+            scrollbar_button_color=theme.colour("muted"),
+        )
         self._scroll.pack(fill="both", expand=True)
         self._scroll.grid_columnconfigure(0, weight=1)
+        enable_wheel_scroll(self._scroll)
 
         for index, section in enumerate(help_sections()):
             ctk.CTkLabel(

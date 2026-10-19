@@ -73,12 +73,16 @@ def validate_group_form(name: str, url: str, enabled: bool) -> GroupFormResult:
         return GroupFormResult(None, ru.GROUP_NAME_TOO_LONG)
     if not clean_url:
         return GroupFormResult(None, ru.GROUP_URL_REQUIRED)
-    if not _looks_like_http_url(clean_url):
+    if not looks_like_http_url(clean_url):
         return GroupFormResult(None, ru.GROUP_URL_INVALID)
     return GroupFormResult(GroupFormValues(clean_name, clean_url, enabled), None)
 
 
-def _looks_like_http_url(value: str) -> bool:
+def looks_like_http_url(value: str) -> bool:
+    """Return whether ``value`` starts with an ``http://`` or ``https://`` scheme.
+
+    Used both to validate the group editor and to gate external link launches.
+    """
     lowered = value.lower()
     return lowered.startswith(("http://", "https://"))
 

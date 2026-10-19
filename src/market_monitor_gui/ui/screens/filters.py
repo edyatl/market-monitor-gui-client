@@ -18,6 +18,7 @@ from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
 from market_monitor_gui.ui.filters_view import filter_state_text, normalized_line, sort_filters
 from market_monitor_gui.ui.screens.base import ScreenFrame
+from market_monitor_gui.ui.scroll import enable_wheel_scroll
 
 
 class FiltersScreen(ScreenFrame):
@@ -64,9 +65,15 @@ class FiltersScreen(ScreenFrame):
         )
         self._banner.pack(fill="x", pady=(theme.PAD_XS, theme.PAD_S))
 
-        self._list = ctk.CTkScrollableFrame(self.body, fg_color="transparent")
+        self._list = ctk.CTkScrollableFrame(
+            self.body,
+            fg_color="transparent",
+            scrollbar_fg_color="transparent",
+            scrollbar_button_color=theme.colour("muted"),
+        )
         self._list.pack(fill="both", expand=True)
         self._list.grid_columnconfigure(0, weight=1)
+        enable_wheel_scroll(self._list)
 
         self._empty = ctk.CTkLabel(
             self._list,

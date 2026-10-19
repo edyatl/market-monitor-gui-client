@@ -89,6 +89,7 @@ class Fonts:
     section: ctk.CTkFont
     body: ctk.CTkFont
     small: ctk.CTkFont
+    link: ctk.CTkFont
 
 
 def build_fonts() -> Fonts:
@@ -98,4 +99,5 @@ def build_fonts() -> Fonts:
         section=ctk.CTkFont(size=FONT_SECTION_SIZE, weight="bold"),
         body=ctk.CTkFont(size=FONT_BODY_SIZE),
         small=ctk.CTkFont(size=FONT_SMALL_SIZE),
+        link=ctk.CTkFont(size=FONT_BODY_SIZE, underline=True),
     )

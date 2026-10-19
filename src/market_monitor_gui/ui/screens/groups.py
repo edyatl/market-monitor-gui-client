@@ -22,6 +22,7 @@ from market_monitor_gui.ui.groups_view import (
     toggle_action_text,
 )
 from market_monitor_gui.ui.screens.base import ScreenFrame
+from market_monitor_gui.ui.scroll import enable_wheel_scroll
 
 _URL_DISPLAY_LIMIT = 72
 
@@ -39,11 +40,13 @@ class GroupsScreen(ScreenFrame):
         on_edit: Callable[[GroupResponse], None],
         on_toggle: Callable[[GroupResponse], None],
         on_delete: Callable[[GroupResponse], None],
+        on_open_url: Callable[[str], None],
     ) -> None:
         super().__init__(master, title=ru.SIDEBAR_GROUPS, fonts=fonts)
         self._on_edit = on_edit
         self._on_toggle = on_toggle
         self._on_delete = on_delete
+        self._on_open_url = on_open_url
         self._rows: dict[int, _GroupRow] = {}
         self._busy: set[int] = set()
 
@@ -75,9 +78,15 @@ class GroupsScreen(ScreenFrame):
         )
         self._banner.pack(fill="x", pady=(theme.PAD_XS, theme.PAD_S))
 
-        self._list = ctk.CTkScrollableFrame(self.body, fg_color="transparent")
+        self._list = ctk.CTkScrollableFrame(
+            self.body,
+            fg_color="transparent",
+            scrollbar_fg_color="transparent",
+            scrollbar_button_color=theme.colour("muted"),
+        )
         self._list.pack(fill="both", expand=True)
         self._list.grid_columnconfigure(0, weight=1)
+        enable_wheel_scroll(self._list)
 
         self._empty = ctk.CTkLabel(
             self._list,
@@ -110,6 +119,7 @@ class GroupsScreen(ScreenFrame):
                 on_edit=self._on_edit,
                 on_toggle=self._on_toggle,
                 on_delete=self._on_delete,
+                on_open_url=self._on_open_url,
             )
             row.grid(row=index, column=0, sticky="ew", pady=theme.PAD_XS)
             self._rows[group.id] = row
@@ -163,6 +173,7 @@ class _GroupRow(ctk.CTkFrame):
         on_edit: Callable[[GroupResponse], None],
         on_toggle: Callable[[GroupResponse], None],
         on_delete: Callable[[GroupResponse], None],
+        on_open_url: Callable[[str], None],
     ) -> None:
         super().__init__(master)
         self.grid_columnconfigure(0, weight=1)
@@ -170,13 +181,20 @@ class _GroupRow(ctk.CTkFrame):
         ctk.CTkLabel(self, text=group.name, font=fonts.body, anchor="w").grid(
             row=0, column=0, sticky="ew", padx=(theme.PAD_S, 0), pady=(theme.PAD_XS, 0)
         )
-        ctk.CTkLabel(
+        self._open_url = ctk.CTkButton(
             self,
             text=ellipsize(group.url, _URL_DISPLAY_LIMIT),
-            font=fonts.small,
-            text_color=theme.colour("muted"),
+            font=fonts.link,
+            text_color=theme.colour("accent"),
+            fg_color="transparent",
+            hover_color=theme.colour("hover"),
             anchor="w",
-        ).grid(row=1, column=0, sticky="ew", padx=(theme.PAD_S, 0), pady=(0, theme.PAD_XS))
+            corner_radius=0,
+            command=lambda: on_open_url(group.url),
+        )
+        self._open_url.grid(
+            row=1, column=0, sticky="ew", padx=(theme.PAD_S, 0), pady=(0, theme.PAD_XS)
+        )
 
         ctk.CTkLabel(self, text=group_state_text(group.enabled), font=fonts.small, anchor="e").grid(
             row=0, column=1, rowspan=2, padx=theme.PAD_S

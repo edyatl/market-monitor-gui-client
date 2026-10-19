@@ -30,6 +30,14 @@ SIDEBAR_SETTINGS: Final[str] = "Настройки"
 SIDEBAR_FILTERS: Final[str] = "Исключения"
 SIDEBAR_HELP: Final[str] = "Помощь"
 
+# Decorative glyphs shown before each navigation label. Labels stay authoritative when a
+# font lacks a glyph (rare: some Windows fonts render ⚙/☰ as tofu boxes).
+SIDEBAR_ICON_OVERVIEW: Final[str] = "▦"
+SIDEBAR_ICON_GROUPS: Final[str] = "▣"
+SIDEBAR_ICON_FILTERS: Final[str] = "⊘"
+SIDEBAR_ICON_SETTINGS: Final[str] = "⚙"
+SIDEBAR_ICON_HELP: Final[str] = "?"
+
 # --- Application menu --------------------------------------------------------
 
 MENU_CONNECTION_SETTINGS: Final[str] = "Настройки подключения"
@@ -37,6 +45,7 @@ MENU_CHECK_CONNECTION: Final[str] = "Проверить соединение"
 MENU_LOGOUT: Final[str] = "Завершить сеанс"
 MENU_ABOUT: Final[str] = "О программе"
 MENU_BUTTON: Final[str] = "Меню"
+MENU_ICON: Final[str] = "☰"
 
 # --- Common actions ----------------------------------------------------------
 
@@ -101,6 +110,7 @@ ERR_NO_SECRET: Final[str] = "Секрет приложения не задан. 
 ERR_SECRET_REQUIRED: Final[str] = "Введите секрет приложения."
 ERR_UNEXPECTED: Final[str] = "Непредвиденная ошибка. Повторите действие."
 ERR_SECRET_SAVE: Final[str] = "Не удалось сохранить секрет. Проверьте права на папку данных."
+ERR_OPEN_LINK: Final[str] = "Не удалось открыть ссылку в браузере."
 ERR_NO_DISPLAY: Final[str] = "Не удалось запустить графический интерфейс: нет доступного дисплея."
 
 # --- Connection settings dialog ----------------------------------------------
@@ -406,3 +416,8 @@ def fmt_filter_normalized(phrase: str) -> str:
 def fmt_confirm_delete_filter(phrase: str) -> str:
     """Format the destructive confirmation question naming the exclusion phrase."""
     return f"Удалить исключение «{phrase}»?"
+
+
+def fmt_menu_button() -> str:
+    """Format the application-menu button label with its decorative icon."""
+    return f"{MENU_ICON}  {MENU_BUTTON}"

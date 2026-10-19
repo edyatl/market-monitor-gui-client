@@ -34,6 +34,20 @@ SCREEN_LABELS: Mapping[Screen, str] = {
     Screen.HELP: ru.SIDEBAR_HELP,
 }
 
+#: Decorative glyphs shown before each navigation label. Cosmetic only.
+SCREEN_ICONS: Mapping[Screen, str] = {
+    Screen.OVERVIEW: ru.SIDEBAR_ICON_OVERVIEW,
+    Screen.GROUPS: ru.SIDEBAR_ICON_GROUPS,
+    Screen.SETTINGS: ru.SIDEBAR_ICON_SETTINGS,
+    Screen.FILTERS: ru.SIDEBAR_ICON_FILTERS,
+    Screen.HELP: ru.SIDEBAR_ICON_HELP,
+}
+
+
+def screen_button_text(screen: Screen) -> str:
+    """Return the sidebar/menu label with its decorative icon prefix."""
+    return f"{SCREEN_ICONS[screen]}  {SCREEN_LABELS[screen]}"
+
 
 def screen_from_value(value: str | None) -> Screen:
     """Return the stored screen, defaulting to Overview for unknown values."""

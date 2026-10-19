@@ -8,7 +8,7 @@ import customtkinter as ctk
 
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
-from market_monitor_gui.ui.navigation import SCREEN_LABELS, SCREEN_ORDER, Screen
+from market_monitor_gui.ui.navigation import SCREEN_ORDER, Screen, screen_button_text
 
 
 class Sidebar(ctk.CTkFrame):
@@ -34,7 +34,7 @@ class Sidebar(ctk.CTkFrame):
         for screen in SCREEN_ORDER:
             button = ctk.CTkButton(
                 self,
-                text=SCREEN_LABELS[screen],
+                text=screen_button_text(screen),
                 anchor="w",
                 font=fonts.body,
                 **theme.secondary_button(),

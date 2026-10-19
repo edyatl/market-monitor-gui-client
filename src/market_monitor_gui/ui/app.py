@@ -48,6 +48,7 @@ from market_monitor_gui.ui.dialogs.filter_editor import FilterEditorDialog
 from market_monitor_gui.ui.dialogs.group_editor import GroupEditorDialog
 from market_monitor_gui.ui.dialogs.login import LoginDialog
 from market_monitor_gui.ui.forms import FilterFormValues, GroupFormValues, login_error_text
+from market_monitor_gui.ui.links import open_external_url
 from market_monitor_gui.ui.menu import AppMenu, MenuAction
 from market_monitor_gui.ui.navigation import SCREEN_ORDER, Screen, screen_from_value
 from market_monitor_gui.ui.screens.auth import AuthScreen
@@ -137,6 +138,7 @@ class Shell(ctk.CTk):
             on_edit=self._open_group_editor_edit,
             on_toggle=self._toggle_group,
             on_delete=self._confirm_delete_group,
+            on_open_url=self._open_group_url,
         )
         self._settings_screen = SettingsScreen(
             self._content,
@@ -604,6 +606,19 @@ class Shell(ctk.CTk):
     def _disable_from_conflict(self, dialog: ConfirmDeleteDialog, group: GroupResponse) -> None:
         dialog.close()
         self._toggle_group(group)
+
+    def _open_group_url(self, url: str) -> None:
+        """Open a group URL in the browser without blocking the UI thread."""
+        self._ctx.runner.submit(
+            lambda: open_external_url(url),
+            on_ok=self._url_opened,
+            on_err=lambda _exc: self._flash_message(ru.ERR_OPEN_LINK),
+            key="open-group-url",
+        )
+
+    def _url_opened(self, opened: bool) -> None:
+        if not opened:
+            self._flash_message(ru.ERR_OPEN_LINK)
 
     # -- settings -------------------------------------------------------------
 

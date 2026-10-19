@@ -70,7 +70,7 @@ class AppMenu:
 
         self.button = ctk.CTkButton(
             master,
-            text=ru.MENU_BUTTON,
+            text=ru.fmt_menu_button(),
             anchor="w",
             font=fonts.body,
             border_width=1,
