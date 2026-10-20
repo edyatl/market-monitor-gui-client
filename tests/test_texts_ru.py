@@ -127,6 +127,7 @@ def test_settings_keys_exist() -> None:
     required = {
         "LABEL_THRESHOLD",
         "SETTINGS_THRESHOLD_HINT",
+        "SETTINGS_PERCENT_SUFFIX",
         "SETTINGS_THRESHOLD_REQUIRED",
         "SETTINGS_THRESHOLD_NOT_A_NUMBER",
         "SETTINGS_THRESHOLD_OUT_OF_RANGE",
@@ -134,6 +135,14 @@ def test_settings_keys_exist() -> None:
         "SETTINGS_SAVED",
     }
     assert required <= set(ru.TEXT_KEYS)
+
+
+def test_settings_hint_states_the_enforced_range() -> None:
+    from market_monitor_gui.ui.forms import THRESHOLD_MAX, THRESHOLD_MIN
+    from market_monitor_gui.ui.settings_view import format_threshold
+
+    assert format_threshold(THRESHOLD_MIN) in ru.SETTINGS_THRESHOLD_HINT
+    assert format_threshold(THRESHOLD_MAX) in ru.SETTINGS_THRESHOLD_HINT
 
 
 def test_filters_keys_exist() -> None:
@@ -199,7 +208,15 @@ def test_help_keys_exist() -> None:
         "HELP_FILTERS_BODY",
         "HELP_OFFLINE_HEADING",
         "HELP_OFFLINE_BODY",
+        "HELP_KEYS_HEADING",
+        "HELP_KEYS_ITEM",
+        "HELP_KEYS_REFRESH",
+        "HELP_KEYS_ESCAPE",
         "HELP_SUPPORT_HEADING",
         "HELP_SUPPORT_BODY",
     }
     assert required <= set(ru.TEXT_KEYS)
+
+
+def test_help_offline_body_mentions_the_retry_action() -> None:
+    assert ru.ACTION_RETRY in ru.HELP_OFFLINE_BODY

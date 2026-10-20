@@ -319,9 +319,9 @@ def test_banner_sits_above_the_content(tmp_path: Path, monkeypatch: pytest.Monke
         shell.update()
         pairs = (
             (shell._screens[Screen.OVERVIEW], shell._screens[Screen.OVERVIEW]._cards, "before"),
-            (shell._groups_screen, shell._groups_screen._count, "after"),
-            (shell._filters_screen, shell._filters_screen._count, "after"),
-            (shell._settings_screen, shell._settings_screen._entry, "before"),
+            (shell._groups_screen, shell._groups_screen._toolbar, "after"),
+            (shell._filters_screen, shell._filters_screen._toolbar, "after"),
+            (shell._settings_screen, shell._settings_screen._field_row, "before"),
         )
         for screen, anchor, relation in pairs:
             screen.set_loading()
@@ -335,6 +335,29 @@ def test_banner_sits_above_the_content(tmp_path: Path, monkeypatch: pytest.Monke
                 assert banner_index < anchor_index
             else:
                 assert anchor_index < banner_index == anchor_index + 1
+        shell.destroy()
+    finally:
+        context.close()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_list_counts_live_on_the_toolbar(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """G16: the count sits on the toolbar row (actions left, count right)."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        for screen in (shell._groups_screen, shell._filters_screen):
+            assert screen._count.master is screen._toolbar
+            toolbar_slaves = screen._toolbar.pack_slaves()
+            assert screen._count in toolbar_slaves
+            assert toolbar_slaves.index(screen._count) > toolbar_slaves.index(screen._add_button)
+            assert screen._count not in screen.body.pack_slaves()
         shell.destroy()
     finally:
         context.close()

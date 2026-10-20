@@ -230,3 +230,74 @@ def test_failed_read_locks_and_failed_write_keeps_controls_usable() -> None:
         assert ru.READONLY_NOTICE in screen._banner.text
     finally:
         root.destroy()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_conflict_hint_stays_hidden_until_needed() -> None:
+    import customtkinter as ctk
+
+    from market_monitor_gui.services.groups import GroupsData
+
+    root = ctk.CTk()
+    try:
+        screen = _screen(root)
+        screen.render(GroupsData((_group(),), from_cache=False, cached_at=None))
+        root.update()
+
+        row = screen._rows[1]
+        assert row._hint.winfo_manager() == ""
+
+        screen.show_conflict(1)
+        root.update()
+        assert row._hint.winfo_manager() == "grid"
+        assert row._hint.cget("text")
+    finally:
+        root.destroy()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_long_url_is_middle_ellipsized_but_opens_in_full() -> None:
+    import customtkinter as ctk
+
+    from market_monitor_gui.api.dto import GroupResponse
+    from market_monitor_gui.services.groups import GroupsData
+    from market_monitor_gui.ui import theme
+    from market_monitor_gui.ui.screens.groups import _URL_DISPLAY_LIMIT, GroupsScreen
+
+    root = ctk.CTk()
+    try:
+        opened: list[str] = []
+        screen = GroupsScreen(
+            root,
+            fonts=theme.build_fonts(),
+            on_refresh=lambda: None,
+            on_add=lambda: None,
+            on_edit=lambda _group: None,
+            on_toggle=lambda _group: None,
+            on_delete=lambda _group: None,
+            on_open_url=opened.append,
+        )
+        screen.pack(fill="both", expand=True)
+        long_url = "https://shop.example/" + "very/long/" * 20 + "product-42"
+        group = GroupResponse(
+            id=1,
+            name="G1",
+            url=long_url,
+            enabled=True,
+            sort_order=0,
+            created_at="2026-01-01T00:00:00Z",
+            updated_at="2026-01-01T00:00:00Z",
+        )
+        screen.render(GroupsData((group,), from_cache=False, cached_at=None))
+        root.update()
+
+        row = screen._rows[1]
+        shown = str(row._open_url.cget("text"))
+        assert shown != long_url
+        assert len(shown) == _URL_DISPLAY_LIMIT
+        assert "…" in shown
+
+        row._open_url.invoke()
+        assert opened == [long_url]
+    finally:
+        root.destroy()

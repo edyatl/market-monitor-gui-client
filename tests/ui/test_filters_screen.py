@@ -46,6 +46,19 @@ def _item() -> Any:
     )
 
 
+def _item_with_normalized(normalized: str, filter_id: int = 1) -> Any:
+    from market_monitor_gui.api.dto import FilterResponse
+
+    return FilterResponse(
+        id=filter_id,
+        phrase="No  Spam",
+        normalized_phrase=normalized,
+        enabled=True,
+        created_at="2026-01-01T00:00:00Z",
+        updated_at="2026-01-01T00:00:00Z",
+    )
+
+
 @pytest.mark.skipif(not _has_display(), reason="no display available")
 def test_cached_data_locks_every_mutation() -> None:
     from market_monitor_gui.services.filters import FiltersData
@@ -106,5 +119,51 @@ def test_failed_read_locks_and_failed_write_only_reports() -> None:
         assert screen._add_button.cget("state") == "disabled"
         assert screen._rows[1]._delete.cget("state") == "disabled"
         assert ru.READONLY_NOTICE in screen._banner.text
+    finally:
+        root.destroy()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_count_sits_on_the_toolbar() -> None:
+    from market_monitor_gui.services.filters import FiltersData
+
+    root, screen, _theme = _make_screen()
+    try:
+        screen.render(FiltersData((_item(),), from_cache=False, cached_at=None))
+        root.update()
+
+        assert screen._count.master is screen._toolbar
+        assert screen._count in screen._toolbar.pack_slaves()
+        assert screen._count not in screen.body.pack_slaves()
+    finally:
+        root.destroy()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_normalized_line_is_hidden_when_it_matches_the_phrase() -> None:
+    from market_monitor_gui.services.filters import FiltersData
+    from market_monitor_gui.texts import ru
+
+    root, screen, _theme = _make_screen()
+    try:
+        screen.render(
+            FiltersData(
+                (
+                    _item_with_normalized("No  Spam", filter_id=1),
+                    _item_with_normalized("no spam", filter_id=2),
+                ),
+                from_cache=False,
+                cached_at=None,
+            )
+        )
+        root.update()
+
+        hidden = screen._rows[1]
+        assert hidden._normalized.cget("text") == ""
+        assert hidden._normalized.winfo_manager() == ""
+
+        shown = screen._rows[2]
+        assert shown._normalized.cget("text") == ru.fmt_filter_normalized("no spam")
+        assert shown._normalized.winfo_manager() == "grid"
     finally:
         root.destroy()

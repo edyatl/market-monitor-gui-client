@@ -8,6 +8,7 @@ from market_monitor_gui.api.dto import GroupResponse
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui.groups_view import (
     ellipsize,
+    ellipsize_middle,
     group_state_text,
     sort_groups,
     toggle_action_text,
@@ -48,3 +49,21 @@ def test_ellipsize_truncates_with_ellipsis() -> None:
     result = ellipsize("a" * 100, 10)
     assert len(result) == 10
     assert result.endswith("…")
+
+
+def test_ellipsize_middle_keeps_head_and_tail() -> None:
+    url = "https://shop.example/catalog/very/long/path/to/a/product/123456"
+    result = ellipsize_middle(url, 48)
+    assert len(result) == 48
+    assert result.startswith("https://shop.example")
+    assert result.endswith(url[-1])
+    assert "…" in result
+
+
+def test_ellipsize_middle_leaves_short_text_untouched() -> None:
+    assert ellipsize_middle("https://shop.example/1", 72) == "https://shop.example/1"
+
+
+def test_ellipsize_middle_handles_tiny_limits() -> None:
+    assert ellipsize_middle("abcdef", 1) == "abcdef"
+    assert ellipsize_middle("abcdef", 2) == "a…"

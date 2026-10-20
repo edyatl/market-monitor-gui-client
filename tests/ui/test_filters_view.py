@@ -32,9 +32,13 @@ def test_filter_state_text_carries_words_and_glyph() -> None:
     assert filter_state_text(False) == ru.FILTER_STATE_DISABLED
 
 
-def test_normalized_line_is_formatted_when_present() -> None:
-    item = _filter(1, "no spam", "no spam")
+def test_normalized_line_is_formatted_when_it_differs() -> None:
+    item = _filter(1, "No  Spam", "no spam")
     assert normalized_line(item) == ru.fmt_filter_normalized("no spam")
+
+
+def test_normalized_line_is_hidden_when_equal_to_the_phrase() -> None:
+    assert normalized_line(_filter(1, "no spam", "no spam")) == ""
 
 
 def test_normalized_line_is_empty_when_absent() -> None:
