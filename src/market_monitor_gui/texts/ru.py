@@ -85,7 +85,7 @@ LOGIN_FAILED: Final[str] = "Не удалось войти. Проверьте �
 
 # --- Domain labels (shared by screens) ---------------------------------------
 
-LABEL_THRESHOLD: Final[str] = "Порог снижения цены, %"
+LABEL_THRESHOLD: Final[str] = "Порог снижения цены"
 LABEL_FILTER_PHRASES: Final[str] = "Фразы-исключения"
 
 # --- Errors ------------------------------------------------------------------
@@ -217,9 +217,10 @@ CONFIRM_DELETE_WARNING: Final[str] = "Действие нельзя отмени
 # --- Settings screen ---------------------------------------------------------
 
 SETTINGS_THRESHOLD_HINT: Final[str] = (
-    "Порог снижения цены в процентах. Значение действует на сервере глобально — "
-    "для всех операторов."
+    "Порог снижения цены в процентах. Допустимый диапазон: от 0,1 до 100. "
+    "Значение действует на сервере глобально — для всех операторов."
 )
+SETTINGS_PERCENT_SUFFIX: Final[str] = "%"
 SETTINGS_THRESHOLD_REQUIRED: Final[str] = "Укажите порог снижения цены."
 SETTINGS_THRESHOLD_NOT_A_NUMBER: Final[str] = "Введите число, например 7,5."
 SETTINGS_THRESHOLD_OUT_OF_RANGE: Final[str] = "Порог должен быть от 0,1 до 100 %."
@@ -282,16 +283,23 @@ HELP_THRESHOLD_BODY: Final[str] = (
 )
 HELP_FILTERS_HEADING: Final[str] = "Исключения"
 HELP_FILTERS_BODY: Final[str] = (
-    "Исключения — фразы, по которым товары отбрасываются. Введите фразу (слова через пробел) "
-    "в поле «Фраза» и нажмите «Добавить». Регистр и лишние пробелы нормализуются на сервере: "
-    "в списке видно нормализованную форму, и сравнивает её сервер, а не программа."
+    "Исключения — фразы, по которым товары отбрасываются. «Добавить» открывает отдельное "
+    "окно: введите фразу (слова через пробел) и сохраните. Регистр и лишние пробелы "
+    "нормализуются на сервере; нормализованная форма показывается в списке, только если "
+    "она отличается от введённой, а сравнивает её сервер, а не программа. Когда данные "
+    "показаны из кэша, изменения недоступны."
 )
 HELP_OFFLINE_HEADING: Final[str] = "Если нет связи или истекла сессия"
 HELP_OFFLINE_BODY: Final[str] = (
     "Когда сервер недоступен, программа показывает последние сохранённые данные с пометкой "
-    "«Данные из кэша, обновлено …», а кнопки изменения остаются недоступны. Если сессия "
+    "«Данные из кэша, обновлено …», а кнопки изменения остаются недоступны. Если запрос не "
+    "удался, вверху экрана появляется сообщение об ошибке и кнопка «Повторить». Если сессия "
     "истекла, введите секрет ещё раз — данные при этом не теряются."
 )
+HELP_KEYS_HEADING: Final[str] = "Клавиши"
+HELP_KEYS_ITEM: Final[str] = "Ctrl+{index} — {label}"
+HELP_KEYS_REFRESH: Final[str] = "F5 — обновить текущий раздел"
+HELP_KEYS_ESCAPE: Final[str] = "Esc — закрыть окно"
 HELP_SUPPORT_HEADING: Final[str] = "Где искать ответы"
 HELP_SUPPORT_BODY: Final[str] = (
     "Уведомления приходят из Telegram-бота — там же видны группы, исключения и настройки. "
@@ -453,3 +461,8 @@ def fmt_confirm_delete_filter(phrase: str) -> str:
 def fmt_menu_button() -> str:
     """Format the application-menu button label with its decorative icon."""
     return f"{MENU_ICON}  {MENU_BUTTON}"
+
+
+def fmt_help_key(index: int, label: str) -> str:
+    """Format one Ctrl+<index> shortcut line for the Help screen."""
+    return HELP_KEYS_ITEM.format(index=index, label=label)

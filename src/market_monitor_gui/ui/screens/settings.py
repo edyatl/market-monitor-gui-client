@@ -53,9 +53,23 @@ class SettingsScreen(ScreenFrame):
             before=threshold_label,
         )
         threshold_label.pack(fill="x")
-        self._entry = ctk.CTkEntry(self.body, textvariable=self._value, width=200)
-        self._entry.pack(anchor="w", pady=(theme.FIELD_GAP, theme.FIELD_BOTTOM))
+        field_row = ctk.CTkFrame(self.body, fg_color="transparent")
+        field_row.pack(anchor="w", pady=(theme.FIELD_GAP, theme.FIELD_BOTTOM))
+        self._field_row = field_row
+        self._entry = ctk.CTkEntry(
+            field_row,
+            textvariable=self._value,
+            width=200,
+            **theme.entry_border(),
+        )
+        self._entry.pack(side="left")
         self._entry.bind("<Return>", self._on_return)
+        ctk.CTkLabel(
+            field_row,
+            text=ru.SETTINGS_PERCENT_SUFFIX,
+            font=fonts.body,
+            anchor="w",
+        ).pack(side="left", padx=(theme.PAD_S, 0))
 
         ctk.CTkLabel(
             self.body,
@@ -110,10 +124,12 @@ class SettingsScreen(ScreenFrame):
             self._banner.show(BannerKind.CACHED, ru.fmt_data_cached_readonly(data.cached_at))
         else:
             self._banner.clear()
+        self._set_border(error=False)
         self._status.configure(text="")
         self._loading = False
         self._busy = False
         self._apply_state()
+        self._focus_entry()
 
     def show_read_error(self, text_key: str) -> None:
         """The read failed: report it and lock the form until a successful read."""
@@ -130,6 +146,7 @@ class SettingsScreen(ScreenFrame):
     def show_saved(self, value: float) -> None:
         """Show the server-confirmed value and a success message."""
         self._value.set(format_threshold(value))
+        self._set_border(error=False)
         self._status.configure(text=ru.SETTINGS_SAVED, text_color=theme.colour("ok"))
         self._busy = False
         self._apply_state()
@@ -154,10 +171,20 @@ class SettingsScreen(ScreenFrame):
             theme.secondary_button(),
         )
 
+    def _set_border(self, *, error: bool) -> None:
+        """Mark the field as locally invalid (red) or restore its normal border."""
+        self._entry.configure(**(theme.entry_border_error() if error else theme.entry_border()))
+
+    def _focus_entry(self) -> None:
+        """Focus the field when it is editable (loading and cached data skip it)."""
+        if self._entry.cget("state") == "normal":
+            self._entry.focus_set()
+
     # -- callbacks ------------------------------------------------------------
 
     def on_show(self) -> None:
-        """The shell refreshes the value when the screen is shown."""
+        """Focus the field once the screen is visible; the shell refreshes the value."""
+        self.after_idle(self._focus_entry)
 
     def _on_return(self, _event: object) -> None:
         self._submit()
@@ -165,11 +192,14 @@ class SettingsScreen(ScreenFrame):
     def _submit(self) -> None:
         result = parse_threshold_percent(self._value.get())
         if result.value is None:
+            self._set_border(error=True)
             self._status.configure(
                 text=ru.text_for(result.error or "ERR_VALIDATION"),
                 text_color=theme.colour("error"),
             )
+            self._entry.focus_set()
             return
+        self._set_border(error=False)
         self._status.configure(text="")
         self.set_busy(True)
         self._on_save(result.value)

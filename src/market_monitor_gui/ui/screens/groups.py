@@ -18,7 +18,7 @@ from market_monitor_gui.ui import theme
 from market_monitor_gui.ui.banner import Banner, BannerKind
 from market_monitor_gui.ui.controls import button_state, set_button_enabled
 from market_monitor_gui.ui.groups_view import (
-    ellipsize,
+    ellipsize_middle,
     group_state_text,
     sort_groups,
     toggle_action_text,
@@ -57,6 +57,7 @@ class GroupsScreen(ScreenFrame):
 
         toolbar = ctk.CTkFrame(self.body, fg_color="transparent")
         toolbar.pack(fill="x")
+        self._toolbar = toolbar
         self._add_button = ctk.CTkButton(
             toolbar,
             text=ru.ACTION_ADD,
@@ -73,9 +74,9 @@ class GroupsScreen(ScreenFrame):
         self._refresh_button.pack(side="left", padx=theme.TOOLBAR_GAP)
 
         self._count = ctk.CTkLabel(
-            self.body, text="", font=fonts.small, text_color=theme.colour("muted"), anchor="w"
+            toolbar, text="", font=fonts.small, text_color=theme.colour("muted"), anchor="e"
         )
-        self._count.pack(fill="x", pady=(theme.BANNER_TOP, 0))
+        self._count.pack(side="right", padx=(theme.TOOLBAR_GAP, 0))
 
         self._list = ctk.CTkScrollableFrame(
             self.body,
@@ -83,7 +84,7 @@ class GroupsScreen(ScreenFrame):
             scrollbar_fg_color="transparent",
             scrollbar_button_color=theme.colour("muted"),
         )
-        self._banner = Banner(self.body, fonts=fonts, wraplength=720, after=self._count)
+        self._banner = Banner(self.body, fonts=fonts, wraplength=720, after=self._toolbar)
         self._list.pack(fill="both", expand=True)
         self._list.grid_columnconfigure(0, weight=1)
         enable_wheel_scroll(self._list)
@@ -214,7 +215,7 @@ class _GroupRow(ctk.CTkFrame):
         )
         self._open_url = ctk.CTkButton(
             self,
-            text=ellipsize(group.url, _URL_DISPLAY_LIMIT),
+            text=ellipsize_middle(group.url, _URL_DISPLAY_LIMIT),
             font=fonts.link,
             anchor="w",
             command=lambda: on_open_url(group.url),
@@ -272,6 +273,7 @@ class _GroupRow(ctk.CTkFrame):
             wraplength=720,
         )
         self._hint.grid(row=2, column=0, columnspan=3, sticky="ew", padx=theme.ROW_PAD_X)
+        self._hint.grid_remove()
 
     def set_busy(self, busy: bool) -> None:
         self._busy = busy
@@ -289,3 +291,4 @@ class _GroupRow(ctk.CTkFrame):
 
     def show_conflict(self) -> None:
         self._hint.configure(text=ru.ERR_CONFLICT_GROUP_IN_USE)
+        self._hint.grid()

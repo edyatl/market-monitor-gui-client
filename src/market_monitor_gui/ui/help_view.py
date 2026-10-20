@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from market_monitor_gui.texts import ru
+from market_monitor_gui.ui.navigation import SCREEN_LABELS, SCREEN_ORDER
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +19,17 @@ class HelpSection:
 
     heading: str
     body: str
+
+
+def _keys_body() -> str:
+    """List the implemented shortcuts, deriving Ctrl+1..5 from the navigation order."""
+    lines = [
+        ru.fmt_help_key(index, SCREEN_LABELS[screen])
+        for index, screen in enumerate(SCREEN_ORDER, start=1)
+    ]
+    lines.append(ru.HELP_KEYS_REFRESH)
+    lines.append(ru.HELP_KEYS_ESCAPE)
+    return "\n".join(lines)
 
 
 def help_sections() -> tuple[HelpSection, ...]:
@@ -30,5 +42,6 @@ def help_sections() -> tuple[HelpSection, ...]:
         HelpSection(ru.HELP_THRESHOLD_HEADING, ru.HELP_THRESHOLD_BODY),
         HelpSection(ru.HELP_FILTERS_HEADING, ru.HELP_FILTERS_BODY),
         HelpSection(ru.HELP_OFFLINE_HEADING, ru.HELP_OFFLINE_BODY),
+        HelpSection(ru.HELP_KEYS_HEADING, _keys_body()),
         HelpSection(ru.HELP_SUPPORT_HEADING, ru.HELP_SUPPORT_BODY),
     )

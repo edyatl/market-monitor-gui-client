@@ -47,6 +47,8 @@ ROW_ACTION_INSET: Final[int] = PAD_S
 BUTTON_WIDTH_NARROW: Final[int] = 90
 BUTTON_WIDTH_MEDIUM: Final[int] = 110
 
+ENTRY_BORDER_WIDTH: Final[int] = 2
+
 SIDEBAR_WIDTH: Final[int] = 200
 MIN_WIDTH: Final[int] = 900
 MIN_HEIGHT: Final[int] = 600
@@ -140,6 +142,22 @@ def nav_active_button() -> dict[str, object]:
         "fg_color": colour("accent"),
         "hover_color": colour("accent_hover"),
         "text_color": colour("on_accent"),
+    }
+
+
+def entry_border() -> dict[str, object]:
+    """Keyword args for the normal border of a validation-tracked entry."""
+    return {
+        "border_color": colour("accent"),
+        "border_width": ENTRY_BORDER_WIDTH,
+    }
+
+
+def entry_border_error() -> dict[str, object]:
+    """Keyword args for an entry whose current value failed local validation."""
+    return {
+        "border_color": colour("error"),
+        "border_width": ENTRY_BORDER_WIDTH,
     }
 
 

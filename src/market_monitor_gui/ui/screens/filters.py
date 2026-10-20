@@ -44,6 +44,7 @@ class FiltersScreen(ScreenFrame):
 
         toolbar = ctk.CTkFrame(self.body, fg_color="transparent")
         toolbar.pack(fill="x")
+        self._toolbar = toolbar
         self._add_button = ctk.CTkButton(
             toolbar,
             text=ru.ACTION_ADD,
@@ -60,9 +61,9 @@ class FiltersScreen(ScreenFrame):
         self._refresh_button.pack(side="left", padx=theme.TOOLBAR_GAP)
 
         self._count = ctk.CTkLabel(
-            self.body, text="", font=fonts.small, text_color=theme.colour("muted"), anchor="w"
+            toolbar, text="", font=fonts.small, text_color=theme.colour("muted"), anchor="e"
         )
-        self._count.pack(fill="x", pady=(theme.BANNER_TOP, 0))
+        self._count.pack(side="right", padx=(theme.TOOLBAR_GAP, 0))
 
         self._list = ctk.CTkScrollableFrame(
             self.body,
@@ -70,7 +71,7 @@ class FiltersScreen(ScreenFrame):
             scrollbar_fg_color="transparent",
             scrollbar_button_color=theme.colour("muted"),
         )
-        self._banner = Banner(self.body, fonts=fonts, wraplength=720, after=self._count)
+        self._banner = Banner(self.body, fonts=fonts, wraplength=720, after=self._toolbar)
         self._list.pack(fill="both", expand=True)
         self._list.grid_columnconfigure(0, weight=1)
         enable_wheel_scroll(self._list)
@@ -181,19 +182,22 @@ class _FilterRow(ctk.CTkFrame):
             padx=(theme.ROW_PAD_X, 0),
             pady=(theme.ROW_PAD_Y, 0),
         )
-        ctk.CTkLabel(
+        self._normalized = ctk.CTkLabel(
             self,
             text=normalized_line(item),
             font=fonts.small,
             text_color=theme.colour("muted"),
             anchor="w",
-        ).grid(
+        )
+        self._normalized.grid(
             row=1,
             column=0,
             sticky="ew",
             padx=(theme.ROW_PAD_X, 0),
             pady=(0, theme.ROW_PAD_Y),
         )
+        if not self._normalized.cget("text"):
+            self._normalized.grid_remove()
 
         ctk.CTkLabel(self, text=filter_state_text(item.enabled), font=fonts.small, anchor="e").grid(
             row=0, column=1, rowspan=2, padx=theme.ROW_ACTION_INSET

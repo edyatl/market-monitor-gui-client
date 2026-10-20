@@ -32,3 +32,17 @@ def ellipsize(text: str, limit: int) -> str:
     if limit <= 1 or len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"
+
+
+def ellipsize_middle(text: str, limit: int) -> str:
+    """Truncate ``text`` in the middle, keeping both the head and the tail.
+
+    Used for URLs, where the scheme (head) and the identifying tail matter more than
+    the middle. The result never exceeds ``limit`` characters.
+    """
+    if limit <= 1 or len(text) <= limit:
+        return text
+    keep = limit - 1
+    head = (keep + 1) // 2
+    tail = keep - head
+    return text[:head] + "…" + (text[-tail:] if tail else "")

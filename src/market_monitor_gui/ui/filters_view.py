@@ -23,7 +23,13 @@ def filter_state_text(enabled: bool) -> str:
 
 
 def normalized_line(item: FilterResponse) -> str:
-    """The normalized-phrase note, or an empty string when the server sends none."""
+    """The normalized-phrase note, or an empty string when it adds nothing.
+
+    Shown only when the server sends a normalized form that differs from the display
+    phrase; the comparison is a plain string compare, never a local re-normalization.
+    """
     if not item.normalized_phrase:
+        return ""
+    if item.normalized_phrase == item.phrase:
         return ""
     return ru.fmt_filter_normalized(item.normalized_phrase)
