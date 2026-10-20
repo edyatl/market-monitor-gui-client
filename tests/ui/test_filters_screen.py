@@ -61,7 +61,7 @@ def test_cached_data_locks_every_mutation() -> None:
         row = screen._rows[1]
         assert row._delete.cget("state") == "disabled"
         assert row._delete.cget("fg_color") == theme.colour("disabled_surface")
-        assert ru.DATA_CACHED_READONLY.split("{when}")[0] in screen._banner.cget("text")
+        assert ru.DATA_CACHED_READONLY.split("{when}")[0] in screen._banner.text
     finally:
         root.destroy()
 
@@ -99,12 +99,12 @@ def test_failed_read_locks_and_failed_write_only_reports() -> None:
         root.update()
         assert screen._add_button.cget("state") == "normal"
         assert screen._rows[1]._delete.cget("state") == "normal"
-        assert screen._banner.cget("text") == ru.ERR_SERVER
+        assert screen._banner.text == ru.ERR_SERVER
 
         screen.show_read_error(text_key_for_exception(ApiError(ErrorKind.NETWORK)))
         root.update()
         assert screen._add_button.cget("state") == "disabled"
         assert screen._rows[1]._delete.cget("state") == "disabled"
-        assert ru.READONLY_NOTICE in screen._banner.cget("text")
+        assert ru.READONLY_NOTICE in screen._banner.text
     finally:
         root.destroy()

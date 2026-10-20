@@ -101,6 +101,28 @@ def test_navigation_icon_keys_exist_and_are_glyphs() -> None:
         assert not _CYRILLIC.search(value), f"{name} must be a decorative glyph, not words"
 
 
+def test_feedback_glyph_keys_exist_and_are_decorative() -> None:
+    required = {
+        "BANNER_GLYPH_LOADING",
+        "BANNER_GLYPH_CACHED",
+        "BANNER_GLYPH_ERROR",
+        "BANNER_GLYPH_INFO",
+        "MSG_GLYPH_INFO",
+        "MSG_GLYPH_SUCCESS",
+        "MSG_GLYPH_WARN",
+        "MSG_GLYPH_ERROR",
+    }
+    assert required <= set(ru.TEXT_KEYS)
+    for name in required:
+        value = ru.TEXT_KEYS[name]
+        assert value != ""
+        assert not _CYRILLIC.search(value), f"{name} must be a decorative glyph, not words"
+
+
+def test_group_disabled_is_russian() -> None:
+    assert _CYRILLIC.search(ru.GROUP_DISABLED)
+
+
 def test_settings_keys_exist() -> None:
     required = {
         "LABEL_THRESHOLD",

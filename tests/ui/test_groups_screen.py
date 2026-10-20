@@ -175,7 +175,7 @@ def test_cached_data_locks_mutations_but_not_the_url_link() -> None:
         assert row._delete.cget("state") == "disabled"
         # Opening a link is not a mutation.
         assert row._open_url.cget("state") == "normal"
-        assert ru.DATA_CACHED_READONLY.split("{when}")[0] in screen._banner.cget("text")
+        assert ru.DATA_CACHED_READONLY.split("{when}")[0] in screen._banner.text
     finally:
         root.destroy()
 
@@ -221,12 +221,12 @@ def test_failed_read_locks_and_failed_write_keeps_controls_usable() -> None:
         root.update()
         assert screen._add_button.cget("state") == "normal"
         assert screen._rows[1]._delete.cget("state") == "normal"
-        assert screen._banner.cget("text") == ru.ERR_CONFLICT
+        assert screen._banner.text == ru.ERR_CONFLICT
 
         screen.show_read_error(text_key_for_exception(ApiError(ErrorKind.TIMEOUT)))
         root.update()
         assert screen._add_button.cget("state") == "disabled"
         assert screen._rows[1]._toggle.cget("state") == "disabled"
-        assert ru.READONLY_NOTICE in screen._banner.cget("text")
+        assert ru.READONLY_NOTICE in screen._banner.text
     finally:
         root.destroy()

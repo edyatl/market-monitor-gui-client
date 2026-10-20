@@ -275,6 +275,71 @@ def test_scrollable_screens_opt_into_wheel_scrolling(
         context.close()
 
 
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_screens_share_the_single_banner_widget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """G15: Overview/Groups/Filters/Settings all use the shared Banner widget."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+    from market_monitor_gui.ui.banner import Banner
+    from market_monitor_gui.ui.navigation import Screen
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        screens = (
+            shell._screens[Screen.OVERVIEW],
+            shell._groups_screen,
+            shell._filters_screen,
+            shell._settings_screen,
+        )
+        for screen in screens:
+            assert isinstance(screen._banner, Banner)
+        shell.destroy()
+    finally:
+        context.close()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_banner_sits_above_the_content(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """G15: the lazily packed banner still appears above the screen's content."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+    from market_monitor_gui.ui.navigation import Screen
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        pairs = (
+            (shell._screens[Screen.OVERVIEW], shell._screens[Screen.OVERVIEW]._cards, "before"),
+            (shell._groups_screen, shell._groups_screen._count, "after"),
+            (shell._filters_screen, shell._filters_screen._count, "after"),
+            (shell._settings_screen, shell._settings_screen._entry, "before"),
+        )
+        for screen, anchor, relation in pairs:
+            screen.set_loading()
+            shell.update()
+            assert screen._banner.winfo_manager() == "pack"
+            # ``pack_info`` does not report before/after; compare pack order instead.
+            siblings = screen.body.pack_slaves()
+            banner_index = siblings.index(screen._banner)
+            anchor_index = siblings.index(anchor)
+            if relation == "before":
+                assert banner_index < anchor_index
+            else:
+                assert anchor_index < banner_index == anchor_index + 1
+        shell.destroy()
+    finally:
+        context.close()
+
+
 def _walk(widget: tk.Misc) -> list[tk.Misc]:
     """Return every descendant widget, depth-first."""
     found: list[tk.Misc] = []
