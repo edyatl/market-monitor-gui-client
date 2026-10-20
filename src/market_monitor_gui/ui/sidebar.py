@@ -8,6 +8,7 @@ import customtkinter as ctk
 
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.controls import set_button_enabled
 from market_monitor_gui.ui.navigation import SCREEN_ORDER, Screen, screen_button_text
 
 
@@ -27,6 +28,7 @@ class Sidebar(ctk.CTkFrame):
         self._on_select = on_select
         self._buttons: dict[Screen, ctk.CTkButton] = {}
         self._active: Screen | None = None
+        self._enabled = True
 
         title = ctk.CTkLabel(self, text=ru.APP_NAME, font=fonts.section, anchor="w")
         title.pack(fill="x", padx=theme.PAD_M, pady=(theme.PAD_M, theme.PAD_S))
@@ -51,34 +53,24 @@ class Sidebar(ctk.CTkFrame):
 
     def set_active(self, screen: Screen) -> None:
         self._active = screen
-        for candidate, button in self._buttons.items():
-            if candidate is screen:
-                button.configure(
-                    fg_color=theme.colour("accent"),
-                    hover_color=theme.colour("accent_hover"),
-                    text_color=theme.colour("on_accent"),
-                    font=self._fonts.section,
-                )
-            else:
-                button.configure(
-                    fg_color="transparent",
-                    hover_color=theme.colour("hover"),
-                    text_color=theme.colour("text"),
-                    font=self._fonts.body,
-                )
+        self._apply_states()
 
     def clear_active(self) -> None:
         """De-highlight every item (used on the unauthenticated screen)."""
         self._active = None
-        for button in self._buttons.values():
-            button.configure(
-                fg_color="transparent",
-                hover_color=theme.colour("hover"),
-                text_color=theme.colour("text"),
-                font=self._fonts.body,
-            )
+        self._apply_states()
 
     def set_enabled(self, enabled: bool) -> None:
-        state = "normal" if enabled else "disabled"
-        for button in self._buttons.values():
-            button.configure(state=state)
+        self._enabled = enabled
+        self._apply_states()
+
+    def _role_for(self, screen: Screen) -> dict[str, object]:
+        if screen is self._active:
+            return theme.nav_active_button()
+        return theme.nav_inactive_button()
+
+    def _apply_states(self) -> None:
+        for screen, button in self._buttons.items():
+            set_button_enabled(button, self._enabled, self._role_for(screen))
+            font = self._fonts.section if screen is self._active else self._fonts.body
+            button.configure(font=font)

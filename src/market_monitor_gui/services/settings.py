@@ -18,7 +18,6 @@ from market_monitor_gui.api.dto import SettingsPatchRequest, SettingsResponse
 from market_monitor_gui.api.errors import ApiError, ErrorKind
 from market_monitor_gui.auth.session import SessionManager
 from market_monitor_gui.db.cache import CacheKey, CacheStore, JsonValue
-from market_monitor_gui.texts import ru
 
 _CACHE_FALLBACK_KINDS = (ErrorKind.NETWORK, ErrorKind.TIMEOUT)
 
@@ -74,7 +73,7 @@ def save_settings(
     try:
         payload = SettingsPatchRequest(price_drop_threshold_percent=price_drop_threshold_percent)
     except ValidationError as exc:
-        raise ApiError(ErrorKind.VALIDATION, text_key=ru.ERR_VALIDATION) from exc
+        raise ApiError(ErrorKind.VALIDATION, text_key="ERR_VALIDATION") from exc
     saved = session.write(lambda: api.patch_settings(payload))
     cache.set_json(api.origin, CacheKey.SETTINGS.value, saved.model_dump(mode="json"))
     return saved

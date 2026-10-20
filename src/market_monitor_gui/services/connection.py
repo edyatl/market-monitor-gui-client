@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 from market_monitor_gui.config.config_store import ConfigStore
 from market_monitor_gui.config.secret_store import SecretStore, SecretStoreError
-from market_monitor_gui.texts import ru
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +34,7 @@ def save_connection(
         if save_secret and secret:
             secrets.save(secret)
     except SecretStoreError:
-        return SaveOutcome(ok=False, error_key=ru.ERR_SECRET_SAVE)
+        return SaveOutcome(ok=False, error_key="ERR_SECRET_SAVE")
     except OSError, ValueError:
-        return SaveOutcome(ok=False, error_key=ru.ERR_UNEXPECTED)
+        return SaveOutcome(ok=False, error_key="ERR_UNEXPECTED")
     return SaveOutcome(ok=True, error_key=None)

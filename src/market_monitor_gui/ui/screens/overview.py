@@ -33,14 +33,19 @@ class OverviewScreen(ScreenFrame):
 
         toolbar = ctk.CTkFrame(self.body, fg_color="transparent")
         toolbar.pack(fill="x")
-        self._refresh_button = ctk.CTkButton(toolbar, text=ru.ACTION_REFRESH, command=on_refresh)
+        self._refresh_button = ctk.CTkButton(
+            toolbar,
+            text=ru.ACTION_REFRESH,
+            command=on_refresh,
+            **theme.primary_button(),
+        )
         self._refresh_button.pack(side="left")
         ctk.CTkButton(
             toolbar,
             text=ru.MENU_CHECK_CONNECTION,
             command=on_check,
             **theme.secondary_button(),
-        ).pack(side="left", padx=theme.PAD_S)
+        ).pack(side="left", padx=theme.TOOLBAR_GAP)
 
         self._banner = ctk.CTkLabel(
             self.body,
@@ -51,7 +56,7 @@ class OverviewScreen(ScreenFrame):
             justify="left",
             anchor="w",
         )
-        self._banner.pack(fill="x", pady=(theme.PAD_S, theme.PAD_S))
+        self._banner.pack(fill="x", pady=(theme.BANNER_TOP, theme.BANNER_BOTTOM))
 
         self._cards = ctk.CTkFrame(self.body, fg_color="transparent")
         self._cards.pack(fill="both", expand=True)
@@ -94,7 +99,7 @@ class OverviewScreen(ScreenFrame):
         self._scan_line.configure(text=line or "")
         self.set_busy(False)
 
-    def show_error(self, text_key: str) -> None:
+    def show_read_error(self, text_key: str) -> None:
         self._banner.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
         self.set_busy(False)
 
@@ -109,8 +114,8 @@ class OverviewScreen(ScreenFrame):
                 row=index // 2,
                 column=index % 2,
                 sticky="nsew",
-                padx=theme.PAD_XS,
-                pady=theme.PAD_XS,
+                padx=theme.CARD_GAP,
+                pady=theme.CARD_GAP,
             )
             ctk.CTkLabel(
                 frame,

@@ -17,12 +17,15 @@ class AboutDialog(BaseDialog):
         super().__init__(master, title=ru.ABOUT_TITLE, fonts=fonts)
 
         ctk.CTkLabel(self, text=ru.APP_NAME, font=self.fonts.title, anchor="w").pack(
-            fill="x", padx=theme.PAD_L, pady=(theme.PAD_L, theme.PAD_XS)
+            fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.CONTENT_GUTTER, theme.FIELD_GAP)
         )
         ctk.CTkLabel(self, text=ru.fmt_version(__version__), font=self.fonts.body, anchor="w").pack(
-            fill="x", padx=theme.PAD_L, pady=(0, theme.PAD_L)
+            fill="x", padx=theme.CONTENT_GUTTER, pady=(0, theme.CONTENT_GUTTER)
         )
 
-        ctk.CTkButton(self, text=ru.ACTION_CLOSE, command=self.close).pack(
-            anchor="e", padx=theme.PAD_L, pady=(0, theme.PAD_L)
-        )
+        ctk.CTkButton(
+            self,
+            text=ru.ACTION_CLOSE,
+            command=self.close,
+            **theme.secondary_button(),
+        ).pack(anchor="e", padx=theme.CONTENT_GUTTER, pady=(0, theme.CONTENT_GUTTER))

@@ -16,7 +16,6 @@ from market_monitor_gui.config.urls import (
     normalize_api_origin,
 )
 from market_monitor_gui.services.errors import login_failure_text_key
-from market_monitor_gui.texts import ru
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,13 +67,13 @@ def validate_group_form(name: str, url: str, enabled: bool) -> GroupFormResult:
     clean_name = name.strip()
     clean_url = url.strip()
     if not clean_name:
-        return GroupFormResult(None, ru.GROUP_NAME_REQUIRED)
+        return GroupFormResult(None, "GROUP_NAME_REQUIRED")
     if len(clean_name) > GROUP_NAME_MAX_LEN:
-        return GroupFormResult(None, ru.GROUP_NAME_TOO_LONG)
+        return GroupFormResult(None, "GROUP_NAME_TOO_LONG")
     if not clean_url:
-        return GroupFormResult(None, ru.GROUP_URL_REQUIRED)
+        return GroupFormResult(None, "GROUP_URL_REQUIRED")
     if not looks_like_http_url(clean_url):
-        return GroupFormResult(None, ru.GROUP_URL_INVALID)
+        return GroupFormResult(None, "GROUP_URL_INVALID")
     return GroupFormResult(GroupFormValues(clean_name, clean_url, enabled), None)
 
 
@@ -106,15 +105,15 @@ def parse_threshold_percent(raw: str) -> ThresholdInput:
     """
     cleaned = raw.strip().replace(",", ".")
     if not cleaned:
-        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_REQUIRED)
+        return ThresholdInput(None, "SETTINGS_THRESHOLD_REQUIRED")
     try:
         value = float(cleaned)
     except ValueError:
-        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_NOT_A_NUMBER)
+        return ThresholdInput(None, "SETTINGS_THRESHOLD_NOT_A_NUMBER")
     if not math.isfinite(value):
-        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_NOT_A_NUMBER)
+        return ThresholdInput(None, "SETTINGS_THRESHOLD_NOT_A_NUMBER")
     if not THRESHOLD_MIN <= value <= THRESHOLD_MAX:
-        return ThresholdInput(None, ru.SETTINGS_THRESHOLD_OUT_OF_RANGE)
+        return ThresholdInput(None, "SETTINGS_THRESHOLD_OUT_OF_RANGE")
     return ThresholdInput(value, None)
 
 
@@ -140,9 +139,9 @@ def validate_filter_form(phrase: str) -> FilterFormResult:
     """Lightly validate the exclusion phrase; the server stays authoritative."""
     clean_phrase = phrase.strip()
     if not clean_phrase:
-        return FilterFormResult(None, ru.FILTER_PHRASE_REQUIRED)
+        return FilterFormResult(None, "FILTER_PHRASE_REQUIRED")
     if len(clean_phrase) > FILTER_PHRASE_MAX_LEN:
-        return FilterFormResult(None, ru.FILTER_PHRASE_TOO_LONG)
+        return FilterFormResult(None, "FILTER_PHRASE_TOO_LONG")
     return FilterFormResult(FilterFormValues(clean_phrase), None)
 
 
@@ -150,29 +149,29 @@ def validate_origin_input(raw: str) -> OriginInput:
     """Normalize and classify a user-entered API origin.
 
     ``http://`` is accepted for loopback hosts without warning; for any other host it
-    is accepted with :data:`ru.CONN_WRN_NOT_HTTPS` as a warning (never a hard block).
+    is accepted with the ``CONN_WRN_NOT_HTTPS`` warning text (never a hard block).
     """
     try:
         origin = normalize_api_origin(raw)
     except ValueError:
-        return OriginInput(None, ru.CONN_ORIGIN_INVALID, None)
+        return OriginInput(None, "CONN_ORIGIN_INVALID", None)
     return OriginInput(origin, None, _origin_warning(origin))
 
 
 def _origin_warning(origin: str) -> str | None:
     if origin.startswith("http://") and not is_loopback_origin(origin):
-        return ru.CONN_WRN_NOT_HTTPS
+        return "CONN_WRN_NOT_HTTPS"
     return None
 
 
 def custom_origin_warning(origin: str) -> str | None:
     """Return a warning when ``origin`` is not the built-in production address."""
-    return None if is_default_origin(origin) else ru.CONN_CUSTOM_ORIGIN_WARNING
+    return None if is_default_origin(origin) else "CONN_CUSTOM_ORIGIN_WARNING"
 
 
 def validate_secret_input(raw: str) -> str | None:
     """Return an error text key for ``raw``, or ``None`` when it is usable."""
-    return None if raw.strip() else ru.ERR_SECRET_REQUIRED
+    return None if raw.strip() else "ERR_SECRET_REQUIRED"
 
 
 def login_error_text(exc: BaseException) -> str:

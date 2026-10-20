@@ -16,6 +16,7 @@ from market_monitor_gui.api.dto import FilterResponse
 from market_monitor_gui.services.filters import FiltersData
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.controls import button_state, set_button_enabled
 from market_monitor_gui.ui.filters_view import filter_state_text, normalized_line, sort_filters
 from market_monitor_gui.ui.screens.base import ScreenFrame
 from market_monitor_gui.ui.scroll import enable_wheel_scroll
@@ -36,10 +37,17 @@ class FiltersScreen(ScreenFrame):
         super().__init__(master, title=ru.SIDEBAR_FILTERS, fonts=fonts)
         self._on_delete = on_delete
         self._rows: dict[int, _FilterRow] = {}
+        self._loading = False
+        self._read_only = False
 
         toolbar = ctk.CTkFrame(self.body, fg_color="transparent")
         toolbar.pack(fill="x")
-        self._add_button = ctk.CTkButton(toolbar, text=ru.ACTION_ADD, command=on_add)
+        self._add_button = ctk.CTkButton(
+            toolbar,
+            text=ru.ACTION_ADD,
+            command=on_add,
+            **theme.primary_button(),
+        )
         self._add_button.pack(side="left")
         self._refresh_button = ctk.CTkButton(
             toolbar,
@@ -47,12 +55,12 @@ class FiltersScreen(ScreenFrame):
             command=on_refresh,
             **theme.secondary_button(),
         )
-        self._refresh_button.pack(side="left", padx=theme.PAD_S)
+        self._refresh_button.pack(side="left", padx=theme.TOOLBAR_GAP)
 
         self._count = ctk.CTkLabel(
             self.body, text="", font=fonts.small, text_color=theme.colour("muted"), anchor="w"
         )
-        self._count.pack(fill="x", pady=(theme.PAD_S, 0))
+        self._count.pack(fill="x", pady=(theme.BANNER_TOP, 0))
 
         self._banner = ctk.CTkLabel(
             self.body,
@@ -63,7 +71,7 @@ class FiltersScreen(ScreenFrame):
             justify="left",
             anchor="w",
         )
-        self._banner.pack(fill="x", pady=(theme.PAD_XS, theme.PAD_S))
+        self._banner.pack(fill="x", pady=(theme.BANNER_TOP, theme.BANNER_BOTTOM))
 
         self._list = ctk.CTkScrollableFrame(
             self.body,
@@ -86,9 +94,9 @@ class FiltersScreen(ScreenFrame):
     # -- state ----------------------------------------------------------------
 
     def set_loading(self) -> None:
+        self._loading = True
         self._banner.configure(text=ru.FILTERS_LOADING, text_color=theme.colour("muted"))
-        self._refresh_button.configure(state="disabled")
-        self._add_button.configure(state="disabled")
+        self._apply_state()
 
     def render(self, data: FiltersData) -> None:
         """Rebuild the rows from server data (sorted by phrase)."""
@@ -96,6 +104,7 @@ class FiltersScreen(ScreenFrame):
             row.destroy()
         self._rows.clear()
 
+        self._read_only = data.from_cache
         filters = sort_filters(data.filters)
         self._empty.pack_forget()
         for index, item in enumerate(filters):
@@ -105,25 +114,48 @@ class FiltersScreen(ScreenFrame):
                 item=item,
                 on_delete=self._on_delete,
             )
-            row.grid(row=index, column=0, sticky="ew", pady=theme.PAD_XS)
+            row.set_read_only(self._read_only)
+            row.grid(row=index, column=0, sticky="ew", pady=theme.ROW_PAD_Y)
             self._rows[item.id] = row
 
         self._count.configure(text=ru.fmt_filters_count(len(filters)))
         if not filters:
-            self._empty.grid(row=0, column=0, sticky="w", pady=theme.PAD_S)
+            self._empty.grid(row=0, column=0, sticky="w", pady=theme.ROW_PAD_Y)
         if data.from_cache:
             self._banner.configure(
-                text=ru.fmt_data_cached(data.cached_at), text_color=theme.colour("warn")
+                text=ru.fmt_data_cached_readonly(data.cached_at),
+                text_color=theme.colour("warn"),
             )
         else:
             self._banner.configure(text="", text_color=theme.colour("warn"))
-        self._refresh_button.configure(state="normal")
-        self._add_button.configure(state="normal")
+        self._loading = False
+        self._apply_state()
 
-    def show_error(self, text_key: str) -> None:
+    def show_read_error(self, text_key: str) -> None:
+        """The read failed: report it and lock mutations until a successful read."""
+        self._read_only = True
+        self._loading = False
+        self._banner.configure(
+            text=ru.fmt_readonly_notice(ru.text_for(text_key)),
+            text_color=theme.colour("error"),
+        )
+        self._apply_state()
+
+    def show_write_error(self, text_key: str) -> None:
+        """A mutation failed: report it but keep the controls usable for a retry."""
+        self._loading = False
         self._banner.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
-        self._refresh_button.configure(state="normal")
-        self._add_button.configure(state="normal")
+        self._apply_state()
+
+    def _apply_state(self) -> None:
+        set_button_enabled(self._refresh_button, not self._loading, theme.secondary_button())
+        set_button_enabled(
+            self._add_button,
+            not (self._loading or self._read_only),
+            theme.primary_button(),
+        )
+        for row in self._rows.values():
+            row.set_read_only(self._read_only)
 
     def set_row_busy(self, filter_id: int, busy: bool) -> None:
         row = self._rows.get(filter_id)
@@ -149,9 +181,15 @@ class _FilterRow(ctk.CTkFrame):
     ) -> None:
         super().__init__(master)
         self.grid_columnconfigure(0, weight=1)
+        self._busy = False
+        self._read_only = False
 
         ctk.CTkLabel(self, text=item.phrase, font=fonts.body, anchor="w").grid(
-            row=0, column=0, sticky="ew", padx=(theme.PAD_S, 0), pady=(theme.PAD_XS, 0)
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=(theme.ROW_PAD_X, 0),
+            pady=(theme.ROW_PAD_Y, 0),
         )
         ctk.CTkLabel(
             self,
@@ -159,24 +197,38 @@ class _FilterRow(ctk.CTkFrame):
             font=fonts.small,
             text_color=theme.colour("muted"),
             anchor="w",
-        ).grid(row=1, column=0, sticky="ew", padx=(theme.PAD_S, 0), pady=(0, theme.PAD_XS))
+        ).grid(
+            row=1,
+            column=0,
+            sticky="ew",
+            padx=(theme.ROW_PAD_X, 0),
+            pady=(0, theme.ROW_PAD_Y),
+        )
 
         ctk.CTkLabel(self, text=filter_state_text(item.enabled), font=fonts.small, anchor="e").grid(
-            row=0, column=1, rowspan=2, padx=theme.PAD_S
+            row=0, column=1, rowspan=2, padx=theme.ROW_ACTION_INSET
         )
 
         actions = ctk.CTkFrame(self, fg_color="transparent")
-        actions.grid(row=0, column=2, rowspan=2, sticky="e", padx=theme.PAD_S)
+        actions.grid(row=0, column=2, rowspan=2, sticky="e", padx=theme.ROW_ACTION_INSET)
         self._delete = ctk.CTkButton(
             actions,
             text=ru.ACTION_DELETE,
-            width=90,
+            width=theme.BUTTON_WIDTH_NARROW,
             font=fonts.small,
-            fg_color=theme.colour("error"),
-            hover_color=theme.colour("error"),
             command=lambda: on_delete(item),
+            **theme.destructive_button(),
         )
-        self._delete.pack(side="left", padx=theme.PAD_XS)
+        self._delete.pack(side="left", padx=theme.ROW_ACTION_GAP)
 
     def set_busy(self, busy: bool) -> None:
-        self._delete.configure(state="disabled" if busy else "normal")
+        self._busy = busy
+        self._apply_state()
+
+    def set_read_only(self, read_only: bool) -> None:
+        self._read_only = read_only
+        self._apply_state()
+
+    def _apply_state(self) -> None:
+        enabled = button_state(busy=self._busy, read_only=self._read_only) == "normal"
+        set_button_enabled(self._delete, enabled, theme.destructive_button())

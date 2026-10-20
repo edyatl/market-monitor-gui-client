@@ -9,6 +9,7 @@ import customtkinter as ctk
 
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.controls import set_button_enabled
 from market_monitor_gui.ui.dialogs.base import BaseDialog
 from market_monitor_gui.ui.forms import custom_origin_warning, validate_origin_input
 
@@ -44,9 +45,9 @@ class ConnectionDialog(BaseDialog):
             text=ru.CONN_ORIGIN_LABEL,
             font=self.fonts.body,
             anchor="w",
-        ).pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_L, theme.PAD_XS))
+        ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.CONTENT_GUTTER, theme.FIELD_GAP))
         self._origin_entry = ctk.CTkEntry(self, textvariable=self._origin, width=460)
-        self._origin_entry.pack(fill="x", padx=theme.PAD_L)
+        self._origin_entry.pack(fill="x", padx=theme.CONTENT_GUTTER)
         self._origin_entry.bind("<KeyRelease>", self._on_edit)
 
         ctk.CTkLabel(
@@ -56,7 +57,7 @@ class ConnectionDialog(BaseDialog):
             wraplength=460,
             justify="left",
             anchor="w",
-        ).pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_XS, theme.PAD_XS))
+        ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.FIELD_GAP, theme.FIELD_BOTTOM))
 
         self._warning = ctk.CTkLabel(
             self,
@@ -67,16 +68,16 @@ class ConnectionDialog(BaseDialog):
             justify="left",
             anchor="w",
         )
-        self._warning.pack(fill="x", padx=theme.PAD_L)
+        self._warning.pack(fill="x", padx=theme.CONTENT_GUTTER)
 
         ctk.CTkLabel(
             self,
             text=ru.CONN_SECRET_LABEL,
             font=self.fonts.body,
             anchor="w",
-        ).pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_M, theme.PAD_XS))
+        ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.SECTION_GAP, theme.FIELD_GAP))
         self._secret_entry = ctk.CTkEntry(self, textvariable=self._secret, show="*", width=460)
-        self._secret_entry.pack(fill="x", padx=theme.PAD_L)
+        self._secret_entry.pack(fill="x", padx=theme.CONTENT_GUTTER)
 
         self._save_secret_box = ctk.CTkCheckBox(
             self,
@@ -84,7 +85,7 @@ class ConnectionDialog(BaseDialog):
             variable=self._save_secret,
             font=self.fonts.body,
         )
-        self._save_secret_box.pack(fill="x", padx=theme.PAD_L, pady=theme.PAD_S)
+        self._save_secret_box.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=theme.BANNER_BOTTOM)
 
         self._error = ctk.CTkLabel(
             self,
@@ -95,7 +96,7 @@ class ConnectionDialog(BaseDialog):
             justify="left",
             anchor="w",
         )
-        self._error.pack(fill="x", padx=theme.PAD_L)
+        self._error.pack(fill="x", padx=theme.CONTENT_GUTTER)
 
         self._check_label = ctk.CTkLabel(
             self,
@@ -105,12 +106,17 @@ class ConnectionDialog(BaseDialog):
             justify="left",
             anchor="w",
         )
-        self._check_label.pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_XS, 0))
+        self._check_label.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.FIELD_GAP, 0))
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
-        buttons.pack(fill="x", padx=theme.PAD_L, pady=theme.PAD_L)
+        buttons.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=theme.CONTENT_GUTTER)
 
-        self._save_button = ctk.CTkButton(buttons, text=ru.ACTION_SAVE, command=self._save)
+        self._save_button = ctk.CTkButton(
+            buttons,
+            text=ru.ACTION_SAVE,
+            command=self._save,
+            **theme.primary_button(),
+        )
         self._save_button.pack(side="left")
         self._check_button: ctk.CTkButton | None = None
         if self._on_check is not None:
@@ -120,7 +126,7 @@ class ConnectionDialog(BaseDialog):
                 command=self._check,
                 **theme.secondary_button(),
             )
-            self._check_button.pack(side="left", padx=theme.PAD_S)
+            self._check_button.pack(side="left", padx=theme.TOOLBAR_GAP)
         ctk.CTkButton(
             buttons,
             text=ru.ACTION_CANCEL,
@@ -146,7 +152,7 @@ class ConnectionDialog(BaseDialog):
     def _save(self) -> None:
         result = validate_origin_input(self._origin.get())
         if result.origin is None or result.error is not None:
-            self._error.configure(text=ru.text_for(ru.CONN_ORIGIN_INVALID))
+            self._error.configure(text=ru.text_for("CONN_ORIGIN_INVALID"))
             return
         secret = self._secret.get().strip() or None
         self._on_save(result.origin, secret, bool(self._save_secret.get()))
@@ -156,7 +162,7 @@ class ConnectionDialog(BaseDialog):
             return
         result = validate_origin_input(self._origin.get())
         if result.origin is None or result.error is not None:
-            self._error.configure(text=ru.text_for(ru.CONN_ORIGIN_INVALID))
+            self._error.configure(text=ru.text_for("CONN_ORIGIN_INVALID"))
             return
         self.show_checking()
         self._on_check(result.origin)
@@ -174,11 +180,11 @@ class ConnectionDialog(BaseDialog):
 
     def set_busy(self, busy: bool) -> None:
         state = "disabled" if busy else "normal"
-        self._save_button.configure(state=state)
+        set_button_enabled(self._save_button, not busy, theme.primary_button())
         self._origin_entry.configure(state=state)
         self._secret_entry.configure(state=state)
         if self._check_button is not None:
-            self._check_button.configure(state=state)
+            set_button_enabled(self._check_button, not busy, theme.secondary_button())
 
     def show_error(self, text_key: str) -> None:
         self._error.configure(text=ru.text_for(text_key))

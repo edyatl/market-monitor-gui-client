@@ -8,7 +8,6 @@ is pure (no I/O, no widgets) so it is unit-testable without a display.
 from __future__ import annotations
 
 from market_monitor_gui.api.errors import ApiError, ErrorKind
-from market_monitor_gui.texts import ru
 
 
 def text_key_for_exception(exc: BaseException) -> str:
@@ -19,7 +18,7 @@ def text_key_for_exception(exc: BaseException) -> str:
     """
     if isinstance(exc, ApiError):
         return exc.text_key
-    return ru.ERR_UNEXPECTED
+    return "ERR_UNEXPECTED"
 
 
 def login_failure_text_key(exc: BaseException) -> str:
@@ -29,5 +28,5 @@ def login_failure_text_key(exc: BaseException) -> str:
     maps to the dedicated login-failure text.
     """
     if isinstance(exc, ApiError) and exc.kind is ErrorKind.UNAUTHORIZED:
-        return ru.LOGIN_FAILED
+        return "LOGIN_FAILED"
     return text_key_for_exception(exc)

@@ -16,6 +16,7 @@ import customtkinter as ctk
 from market_monitor_gui.services.settings import SettingsData
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.controls import set_button_enabled
 from market_monitor_gui.ui.forms import parse_threshold_percent
 from market_monitor_gui.ui.screens.base import ScreenFrame
 from market_monitor_gui.ui.settings_view import format_threshold
@@ -35,6 +36,9 @@ class SettingsScreen(ScreenFrame):
         super().__init__(master, title=ru.SIDEBAR_SETTINGS, fonts=fonts)
         self._on_save = on_save
         self._value = tk.StringVar()
+        self._loading = False
+        self._busy = False
+        self._read_only = False
 
         self._banner = ctk.CTkLabel(
             self.body,
@@ -45,11 +49,11 @@ class SettingsScreen(ScreenFrame):
             justify="left",
             anchor="w",
         )
-        self._banner.pack(fill="x", pady=(0, theme.PAD_M))
+        self._banner.pack(fill="x", pady=(0, theme.SECTION_GAP))
 
         ctk.CTkLabel(self.body, text=ru.LABEL_THRESHOLD, font=fonts.body, anchor="w").pack(fill="x")
         self._entry = ctk.CTkEntry(self.body, textvariable=self._value, width=200)
-        self._entry.pack(anchor="w", pady=(theme.PAD_XS, theme.PAD_XS))
+        self._entry.pack(anchor="w", pady=(theme.FIELD_GAP, theme.FIELD_BOTTOM))
         self._entry.bind("<Return>", self._on_return)
 
         ctk.CTkLabel(
@@ -63,8 +67,13 @@ class SettingsScreen(ScreenFrame):
         ).pack(fill="x")
 
         buttons = ctk.CTkFrame(self.body, fg_color="transparent")
-        buttons.pack(fill="x", pady=theme.PAD_M)
-        self._save_button = ctk.CTkButton(buttons, text=ru.ACTION_SAVE, command=self._submit)
+        buttons.pack(fill="x", pady=theme.SECTION_GAP)
+        self._save_button = ctk.CTkButton(
+            buttons,
+            text=ru.ACTION_SAVE,
+            command=self._submit,
+            **theme.primary_button(),
+        )
         self._save_button.pack(side="left")
         self._refresh_button = ctk.CTkButton(
             buttons,
@@ -72,7 +81,7 @@ class SettingsScreen(ScreenFrame):
             command=on_refresh,
             **theme.secondary_button(),
         )
-        self._refresh_button.pack(side="left", padx=theme.PAD_S)
+        self._refresh_button.pack(side="left", padx=theme.TOOLBAR_GAP)
 
         self._status = ctk.CTkLabel(
             self.body,
@@ -88,40 +97,63 @@ class SettingsScreen(ScreenFrame):
     # -- state ----------------------------------------------------------------
 
     def set_loading(self) -> None:
+        self._loading = True
         self._banner.configure(text=ru.SETTINGS_LOADING, text_color=theme.colour("muted"))
-        self.set_busy(True)
+        self._apply_state()
 
     def render(self, data: SettingsData) -> None:
         """Show the fetched threshold; label cached (offline) values with a time."""
         self._value.set(format_threshold(data.price_drop_threshold_percent))
+        self._read_only = data.from_cache
         if data.from_cache:
             self._banner.configure(
-                text=ru.fmt_data_cached(data.cached_at), text_color=theme.colour("warn")
+                text=ru.fmt_data_cached_readonly(data.cached_at),
+                text_color=theme.colour("warn"),
             )
         else:
             self._banner.configure(text="", text_color=theme.colour("muted"))
         self._status.configure(text="")
-        self.set_busy(False)
+        self._loading = False
+        self._busy = False
+        self._apply_state()
 
-    def show_error(self, text_key: str) -> None:
-        self._banner.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
-        self.set_busy(False)
+    def show_read_error(self, text_key: str) -> None:
+        """The read failed: report it and lock the form until a successful read."""
+        self._read_only = True
+        self._loading = False
+        self._busy = False
+        self._banner.configure(
+            text=ru.fmt_readonly_notice(ru.text_for(text_key)),
+            text_color=theme.colour("error"),
+        )
+        self._apply_state()
 
     def show_saved(self, value: float) -> None:
         """Show the server-confirmed value and a success message."""
         self._value.set(format_threshold(value))
         self._status.configure(text=ru.SETTINGS_SAVED, text_color=theme.colour("ok"))
-        self.set_busy(False)
+        self._busy = False
+        self._apply_state()
 
-    def show_save_error(self, text_key: str) -> None:
+    def show_write_error(self, text_key: str) -> None:
+        """A save failed: report it but keep the form usable for a retry."""
         self._status.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
-        self.set_busy(False)
+        self._busy = False
+        self._apply_state()
 
     def set_busy(self, busy: bool) -> None:
-        state = "disabled" if busy else "normal"
-        self._entry.configure(state=state)
-        self._save_button.configure(state=state)
-        self._refresh_button.configure(state=state)
+        self._busy = busy
+        self._apply_state()
+
+    def _apply_state(self) -> None:
+        editable = not (self._loading or self._busy or self._read_only)
+        self._entry.configure(state="normal" if editable else "disabled")
+        set_button_enabled(self._save_button, editable, theme.primary_button())
+        set_button_enabled(
+            self._refresh_button,
+            not (self._loading or self._busy),
+            theme.secondary_button(),
+        )
 
     # -- callbacks ------------------------------------------------------------
 
@@ -135,7 +167,7 @@ class SettingsScreen(ScreenFrame):
         result = parse_threshold_percent(self._value.get())
         if result.value is None:
             self._status.configure(
-                text=ru.text_for(result.error or ru.ERR_VALIDATION),
+                text=ru.text_for(result.error or "ERR_VALIDATION"),
                 text_color=theme.colour("error"),
             )
             return

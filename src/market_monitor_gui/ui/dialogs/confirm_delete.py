@@ -14,6 +14,7 @@ import customtkinter as ctk
 
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.controls import set_button_enabled
 from market_monitor_gui.ui.dialogs.base import BaseDialog
 
 
@@ -43,7 +44,7 @@ class ConfirmDeleteDialog(BaseDialog):
             wraplength=420,
             justify="left",
             anchor="w",
-        ).pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_L, theme.PAD_XS))
+        ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.CONTENT_GUTTER, theme.FIELD_GAP))
         ctk.CTkLabel(
             self,
             text=ru.CONFIRM_DELETE_WARNING,
@@ -52,7 +53,7 @@ class ConfirmDeleteDialog(BaseDialog):
             wraplength=420,
             justify="left",
             anchor="w",
-        ).pack(fill="x", padx=theme.PAD_L)
+        ).pack(fill="x", padx=theme.CONTENT_GUTTER)
 
         self._error = ctk.CTkLabel(
             self,
@@ -63,10 +64,10 @@ class ConfirmDeleteDialog(BaseDialog):
             justify="left",
             anchor="w",
         )
-        self._error.pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_S, 0))
+        self._error.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.BANNER_BOTTOM, 0))
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
-        buttons.pack(fill="x", padx=theme.PAD_L, pady=theme.PAD_L)
+        buttons.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=theme.CONTENT_GUTTER)
 
         self._cancel_button = ctk.CTkButton(
             buttons,
@@ -78,11 +79,10 @@ class ConfirmDeleteDialog(BaseDialog):
         self._confirm_button = ctk.CTkButton(
             buttons,
             text=confirm_label,
-            fg_color=theme.colour("error"),
-            hover_color=theme.colour("error"),
             command=self._confirm,
+            **theme.destructive_button(),
         )
-        self._confirm_button.pack(side="left", padx=theme.PAD_S)
+        self._confirm_button.pack(side="left", padx=theme.TOOLBAR_GAP)
 
         # Default focus on Cancel so Enter/space never deletes by accident.
         self.after(50, self._cancel_button.focus_set)
@@ -92,10 +92,9 @@ class ConfirmDeleteDialog(BaseDialog):
         self._on_confirm()
 
     def set_busy(self, busy: bool) -> None:
-        state = "disabled" if busy else "normal"
-        self._confirm_button.configure(state=state)
+        set_button_enabled(self._confirm_button, not busy, theme.destructive_button())
         if self._alternative is not None:
-            self._alternative.configure(state=state)
+            set_button_enabled(self._alternative, not busy, theme.secondary_button())
 
     def show_error(self, text_key: str) -> None:
         self.set_busy(False)

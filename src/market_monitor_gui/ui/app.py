@@ -350,7 +350,7 @@ class Shell(ctk.CTk):
             save_secret=save_secret,
         )
         if not outcome.ok:
-            dialog.show_error(outcome.error_key or ru.ERR_UNEXPECTED)
+            dialog.show_error(outcome.error_key or "ERR_UNEXPECTED")
             return
         dialog.close()
         if changed:
@@ -437,7 +437,7 @@ class Shell(ctk.CTk):
             self._status_bar.set_last_refresh(datetime.now(UTC))
 
     def _overview_failed(self, exc: BaseException) -> None:
-        self._overview.show_error(text_key_for_exception(exc))
+        self._overview.show_read_error(text_key_for_exception(exc))
         self._set_status(state_for_error(exc) or self._status)
 
     # -- groups ---------------------------------------------------------------
@@ -463,7 +463,7 @@ class Shell(ctk.CTk):
             self._status_bar.set_last_refresh(datetime.now(UTC))
 
     def _groups_failed(self, exc: BaseException) -> None:
-        self._groups_screen.show_error(text_key_for_exception(exc))
+        self._groups_screen.show_read_error(text_key_for_exception(exc))
         self._set_status(state_for_error(exc) or self._status)
 
     def _open_group_editor_add(self) -> None:
@@ -553,7 +553,7 @@ class Shell(ctk.CTk):
 
     def _group_mutation_failed(self, group_id: int, exc: BaseException) -> None:
         self._groups_screen.set_row_busy(group_id, False)
-        self._groups_screen.show_error(text_key_for_exception(exc))
+        self._groups_screen.show_write_error(text_key_for_exception(exc))
         self._set_status(state_for_error(exc) or self._status)
 
     def _confirm_delete_group(self, group: GroupResponse) -> None:
@@ -601,7 +601,7 @@ class Shell(ctk.CTk):
         if self._dialog_alive(dialog):
             dialog.show_error(text_key_for_exception(exc))
         else:
-            self._groups_screen.show_error(text_key_for_exception(exc))
+            self._groups_screen.show_write_error(text_key_for_exception(exc))
 
     def _disable_from_conflict(self, dialog: ConfirmDeleteDialog, group: GroupResponse) -> None:
         dialog.close()
@@ -643,7 +643,7 @@ class Shell(ctk.CTk):
             self._status_bar.set_last_refresh(datetime.now(UTC))
 
     def _settings_failed(self, exc: BaseException) -> None:
-        self._settings_screen.show_error(text_key_for_exception(exc))
+        self._settings_screen.show_read_error(text_key_for_exception(exc))
         self._set_status(state_for_error(exc) or self._status)
 
     def _save_settings(self, value: float) -> None:
@@ -665,7 +665,7 @@ class Shell(ctk.CTk):
         self._set_status(ConnectionState.CONNECTED)
 
     def _settings_save_failed(self, exc: BaseException) -> None:
-        self._settings_screen.show_save_error(text_key_for_exception(exc))
+        self._settings_screen.show_write_error(text_key_for_exception(exc))
         self._set_status(state_for_error(exc) or self._status)
 
     # -- filters (exclusions) -------------------------------------------------
@@ -691,7 +691,7 @@ class Shell(ctk.CTk):
             self._status_bar.set_last_refresh(datetime.now(UTC))
 
     def _filters_failed(self, exc: BaseException) -> None:
-        self._filters_screen.show_error(text_key_for_exception(exc))
+        self._filters_screen.show_read_error(text_key_for_exception(exc))
         self._set_status(state_for_error(exc) or self._status)
 
     def _open_filter_editor(self) -> None:
@@ -757,7 +757,7 @@ class Shell(ctk.CTk):
         if self._dialog_alive(dialog):
             dialog.show_error(text_key_for_exception(exc))
         else:
-            self._filters_screen.show_error(text_key_for_exception(exc))
+            self._filters_screen.show_write_error(text_key_for_exception(exc))
 
     # -- menu / status / shutdown ---------------------------------------------
 

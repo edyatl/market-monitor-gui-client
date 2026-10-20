@@ -150,6 +150,10 @@ STATUS_NEVER_REFRESHED: Final[str] = "Данные ещё не загружал�
 STATUS_CHECK_OK: Final[str] = "Соединение в порядке."
 CHECK_IN_PROGRESS: Final[str] = "Проверка соединения…"
 
+# --- Read-only mode (cached or unavailable data) -----------------------------
+
+READONLY_NOTICE: Final[str] = "Изменения временно недоступны."
+
 # --- Overview screen ---------------------------------------------------------
 
 OVERVIEW_LOADING: Final[str] = "Загрузка данных…"
@@ -171,6 +175,9 @@ OVERVIEW_SCAN_NEVER: Final[str] = "нет данных"
 OVERVIEW_SCAN_RUN: Final[str] = "последний запуск: {status}"
 OVERVIEW_EMPTY_HINT: Final[str] = "Нажмите «Обновить», чтобы загрузить данные."
 DATA_CACHED: Final[str] = "Данные из кэша, обновлено {when}"
+DATA_CACHED_READONLY: Final[str] = (
+    "Данные из кэша, обновлено {when}. Изменения недоступны без связи с сервером."
+)
 
 # --- Groups screen -----------------------------------------------------------
 
@@ -391,6 +398,17 @@ def fmt_data_cached(when: datetime | None) -> str:
     """Format the cached-data note shown when offline data is displayed."""
     formatted = fmt_datetime(when)
     return DATA_CACHED.format(when=formatted or "—")
+
+
+def fmt_data_cached_readonly(when: datetime | None) -> str:
+    """Format the cached-data note that also states why changes are unavailable."""
+    formatted = fmt_datetime(when)
+    return DATA_CACHED_READONLY.format(when=formatted or "—")
+
+
+def fmt_readonly_notice(reason: str) -> str:
+    """Append the read-only consequence to the reason a screen cannot be edited."""
+    return f"{reason} {READONLY_NOTICE}" if reason else READONLY_NOTICE
 
 
 def fmt_groups_count(count: int) -> str:

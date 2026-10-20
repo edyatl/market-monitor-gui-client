@@ -13,6 +13,7 @@ import customtkinter as ctk
 
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.controls import set_button_enabled
 from market_monitor_gui.ui.dialogs.base import BaseDialog
 from market_monitor_gui.ui.forms import FilterFormValues, validate_filter_form
 
@@ -35,10 +36,10 @@ class FilterEditorDialog(BaseDialog):
 
     def _build(self) -> None:
         ctk.CTkLabel(self, text=ru.FILTER_PHRASE_LABEL, font=self.fonts.body, anchor="w").pack(
-            fill="x", padx=theme.PAD_L, pady=(theme.PAD_L, theme.PAD_XS)
+            fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.CONTENT_GUTTER, theme.FIELD_GAP)
         )
         self._phrase_entry = ctk.CTkEntry(self, textvariable=self._phrase_var, width=440)
-        self._phrase_entry.pack(fill="x", padx=theme.PAD_L)
+        self._phrase_entry.pack(fill="x", padx=theme.CONTENT_GUTTER)
 
         ctk.CTkLabel(
             self,
@@ -48,7 +49,7 @@ class FilterEditorDialog(BaseDialog):
             wraplength=440,
             justify="left",
             anchor="w",
-        ).pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_XS, 0))
+        ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.FIELD_GAP, 0))
 
         self._error = ctk.CTkLabel(
             self,
@@ -59,18 +60,23 @@ class FilterEditorDialog(BaseDialog):
             justify="left",
             anchor="w",
         )
-        self._error.pack(fill="x", padx=theme.PAD_L, pady=(theme.PAD_S, 0))
+        self._error.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.BANNER_BOTTOM, 0))
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
-        buttons.pack(fill="x", padx=theme.PAD_L, pady=theme.PAD_L)
-        self._save_button = ctk.CTkButton(buttons, text=ru.ACTION_SAVE, command=self._submit)
+        buttons.pack(fill="x", padx=theme.CONTENT_GUTTER, pady=theme.CONTENT_GUTTER)
+        self._save_button = ctk.CTkButton(
+            buttons,
+            text=ru.ACTION_SAVE,
+            command=self._submit,
+            **theme.primary_button(),
+        )
         self._save_button.pack(side="left")
         ctk.CTkButton(
             buttons,
             text=ru.ACTION_CANCEL,
             command=self.close,
             **theme.secondary_button(),
-        ).pack(side="left", padx=theme.PAD_S)
+        ).pack(side="left", padx=theme.TOOLBAR_GAP)
 
         self.after(50, self._phrase_entry.focus_set)
 
@@ -80,7 +86,7 @@ class FilterEditorDialog(BaseDialog):
     def _submit(self) -> None:
         result = validate_filter_form(self._phrase_var.get())
         if result.values is None:
-            self._error.configure(text=ru.text_for(result.error or ru.ERR_VALIDATION))
+            self._error.configure(text=ru.text_for(result.error or "ERR_VALIDATION"))
             return
         self._error.configure(text="")
         self.set_busy(True)
@@ -88,9 +94,8 @@ class FilterEditorDialog(BaseDialog):
 
     def set_busy(self, busy: bool) -> None:
         """Disable only this dialog's controls while a write is in flight."""
-        state = "disabled" if busy else "normal"
-        self._phrase_entry.configure(state=state)
-        self._save_button.configure(state=state)
+        self._phrase_entry.configure(state="disabled" if busy else "normal")
+        set_button_enabled(self._save_button, not busy, theme.primary_button())
 
     def show_error(self, text_key: str) -> None:
         """Show a Russian error at the top of the form and re-enable editing."""

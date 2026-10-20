@@ -20,10 +20,17 @@ class ScreenFrame(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self._fonts = fonts
         ctk.CTkLabel(self, text=title, font=fonts.title, anchor="w").pack(
-            fill="x", padx=theme.PAD_L, pady=(theme.PAD_L, theme.PAD_M)
+            fill="x",
+            padx=theme.CONTENT_GUTTER,
+            pady=(theme.TITLE_TOP, theme.TITLE_BOTTOM),
         )
         self.body = ctk.CTkFrame(self, fg_color="transparent")
-        self.body.pack(fill="both", expand=True, padx=theme.PAD_L, pady=(0, theme.PAD_L))
+        self.body.pack(
+            fill="both",
+            expand=True,
+            padx=theme.CONTENT_GUTTER,
+            pady=(0, theme.CONTENT_GUTTER),
+        )
 
     def on_show(self) -> None:
         """Called when the screen becomes visible."""

@@ -29,5 +29,10 @@ class AuthScreen(ScreenFrame):
             wraplength=640,
             justify="left",
             anchor="w",
-        ).pack(fill="x", pady=(0, theme.PAD_M))
-        ctk.CTkButton(self.body, text=ru.ACTION_LOGIN, command=on_login).pack(anchor="w")
+        ).pack(fill="x", pady=(0, theme.SECTION_GAP))
+        ctk.CTkButton(
+            self.body,
+            text=ru.ACTION_LOGIN,
+            command=on_login,
+            **theme.primary_button(),
+        ).pack(anchor="w")

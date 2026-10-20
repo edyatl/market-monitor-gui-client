@@ -20,5 +20,5 @@ def open_external_url(url: str) -> bool:
         return False
     try:
         return webbrowser.open(target, new=2)
-    except (webbrowser.Error, OSError):
+    except webbrowser.Error, OSError:
         return False
