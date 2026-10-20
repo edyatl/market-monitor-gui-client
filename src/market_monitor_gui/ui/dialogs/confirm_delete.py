@@ -3,7 +3,8 @@
 The destructive button is never the default focus and Enter does not confirm delete
 (the dialog binds no Return handler), satisfying the skill's delete-safety rule. A
 ``409`` from the API can reveal a secondary "disable instead" action without closing
-the dialog.
+the dialog; at that point the delete is permanently disabled and the alternative is
+promoted to the single primary action.
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ class ConfirmDeleteDialog(BaseDialog):
         super().__init__(master, title=title, fonts=fonts)
         self._on_confirm = on_confirm
         self._alternative: ctk.CTkButton | None = None
+        self._conflict = False
         self._build(question, confirm_label)
 
     def _build(self, question: str, confirm_label: str) -> None:
@@ -92,25 +94,31 @@ class ConfirmDeleteDialog(BaseDialog):
         self._on_confirm()
 
     def set_busy(self, busy: bool) -> None:
+        if self._conflict:
+            return
         set_button_enabled(self._confirm_button, not busy, theme.destructive_button())
-        if self._alternative is not None:
-            set_button_enabled(self._alternative, not busy, theme.secondary_button())
 
     def show_error(self, text_key: str) -> None:
         self.set_busy(False)
         self._error.configure(text=ru.text_for(text_key))
 
-    def reveal_alternative(
+    def show_conflict(
         self, text_key: str, action_label: str, on_action: Callable[[], None]
     ) -> None:
-        """Show the conflict message and a secondary action button (e.g. disable)."""
-        self.set_busy(False)
+        """Show the conflict message and offer the safe alternative.
+
+        The delete is disabled for good (no retry of the same delete) and the
+        alternative becomes the single primary action; focus stays on Cancel.
+        """
+        self._conflict = True
         self._error.configure(text=ru.text_for(text_key))
+        set_button_enabled(self._confirm_button, False, theme.destructive_button())
         if self._alternative is None:
             self._alternative = ctk.CTkButton(
                 self._confirm_button.master,
                 text=action_label,
                 command=on_action,
-                **theme.secondary_button(),
+                **theme.primary_button(),
             )
-            self._alternative.pack(side="right")
+            self._alternative.pack(side="left", before=self._confirm_button, padx=theme.TOOLBAR_GAP)
+        self.after(50, self._cancel_button.focus_set)

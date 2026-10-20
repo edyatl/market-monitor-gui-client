@@ -59,10 +59,9 @@ from market_monitor_gui.ui.screens.help import HelpScreen
 from market_monitor_gui.ui.screens.overview import OverviewScreen
 from market_monitor_gui.ui.screens.settings import SettingsScreen
 from market_monitor_gui.ui.sidebar import Sidebar
-from market_monitor_gui.ui.status_bar import StatusBar
+from market_monitor_gui.ui.status_bar import MESSAGE_TTL_MS, MessageKind, StatusBar
 
 POLL_INTERVAL_MS = 50
-MESSAGE_LINGER_MS = 4000
 
 
 class Shell(ctk.CTk):
@@ -405,7 +404,7 @@ class Shell(ctk.CTk):
             assert dialog is not None
             dialog.show_check_result(True, ru.STATUS_CHECK_OK)
         else:
-            self._flash_message(ru.STATUS_CHECK_OK)
+            self._flash_message(ru.STATUS_CHECK_OK, MessageKind.SUCCESS)
 
     def _check_failed(self, exc: BaseException, dialog: ConnectionDialog | None) -> None:
         self._set_status(state_for_error(exc) or ConnectionState.OFFLINE)
@@ -414,7 +413,7 @@ class Shell(ctk.CTk):
             assert dialog is not None
             dialog.show_check_result(False, ru.text_for(text_key))
         else:
-            self._flash_message(ru.text_for(text_key))
+            self._flash_message(ru.text_for(text_key), MessageKind.ERROR)
 
     def _refresh_overview(self) -> None:
         if self._session.state is not SessionState.SIGNED_IN:
@@ -531,7 +530,7 @@ class Shell(ctk.CTk):
 
     def _group_saved(self, dialog: GroupEditorDialog) -> None:
         dialog.close()
-        self._flash_message(ru.GROUPS_SAVED)
+        self._flash_message(ru.GROUPS_SAVED, MessageKind.SUCCESS)
         self._refresh_groups()
 
     def _group_write_failed(self, dialog: GroupEditorDialog, exc: BaseException) -> None:
@@ -581,7 +580,7 @@ class Shell(ctk.CTk):
     def _group_deleted(self, dialog: ConfirmDeleteDialog, group: GroupResponse) -> None:
         dialog.close()
         self._groups_screen.set_row_busy(group.id, False)
-        self._flash_message(ru.GROUPS_DELETED)
+        self._flash_message(ru.GROUPS_DELETED, MessageKind.SUCCESS)
         self._refresh_groups()
 
     def _group_delete_failed(
@@ -590,8 +589,8 @@ class Shell(ctk.CTk):
         self._groups_screen.set_row_busy(group.id, False)
         if isinstance(exc, ApiError) and exc.kind is ErrorKind.CONFLICT:
             if self._dialog_alive(dialog):
-                dialog.reveal_alternative(
-                    ru.ERR_CONFLICT_GROUP_IN_USE,
+                dialog.show_conflict(
+                    "ERR_CONFLICT_GROUP_IN_USE",
                     ru.ACTION_DISABLE_GROUP,
                     lambda: self._disable_from_conflict(dialog, group),
                 )
@@ -605,20 +604,35 @@ class Shell(ctk.CTk):
 
     def _disable_from_conflict(self, dialog: ConfirmDeleteDialog, group: GroupResponse) -> None:
         dialog.close()
-        self._toggle_group(group)
+        self._disable_group(group)
+
+    def _disable_group(self, group: GroupResponse) -> None:
+        """Disable a group explicitly (never a toggle) after a delete conflict."""
+        self._groups_screen.set_row_busy(group.id, True)
+        self._ctx.runner.submit(
+            lambda: set_group_enabled(self._session, self._ctx.api, group.id, enabled=False),
+            on_ok=self._group_disabled,
+            on_err=lambda exc: self._group_mutation_failed(group.id, exc),
+            key=f"group-disable-{group.id}",
+        )
+
+    def _group_disabled(self, updated: GroupResponse) -> None:
+        self._groups_screen.set_row_busy(updated.id, False)
+        self._flash_message(ru.GROUP_DISABLED, MessageKind.SUCCESS)
+        self._refresh_groups()
 
     def _open_group_url(self, url: str) -> None:
         """Open a group URL in the browser without blocking the UI thread."""
         self._ctx.runner.submit(
             lambda: open_external_url(url),
             on_ok=self._url_opened,
-            on_err=lambda _exc: self._flash_message(ru.ERR_OPEN_LINK),
+            on_err=lambda _exc: self._flash_message(ru.ERR_OPEN_LINK, MessageKind.ERROR),
             key="open-group-url",
         )
 
     def _url_opened(self, opened: bool) -> None:
         if not opened:
-            self._flash_message(ru.ERR_OPEN_LINK)
+            self._flash_message(ru.ERR_OPEN_LINK, MessageKind.ERROR)
 
     # -- settings -------------------------------------------------------------
 
@@ -661,7 +675,7 @@ class Shell(ctk.CTk):
 
     def _settings_saved(self, response: SettingsResponse) -> None:
         self._settings_screen.show_saved(response.price_drop_threshold_percent)
-        self._flash_message(ru.SETTINGS_SAVED)
+        self._flash_message(ru.SETTINGS_SAVED, MessageKind.SUCCESS)
         self._set_status(ConnectionState.CONNECTED)
 
     def _settings_save_failed(self, exc: BaseException) -> None:
@@ -715,7 +729,7 @@ class Shell(ctk.CTk):
 
     def _filter_saved(self, dialog: FilterEditorDialog) -> None:
         dialog.close()
-        self._flash_message(ru.FILTERS_SAVED)
+        self._flash_message(ru.FILTERS_SAVED, MessageKind.SUCCESS)
         self._refresh_filters()
 
     def _filter_write_failed(self, dialog: FilterEditorDialog, exc: BaseException) -> None:
@@ -747,7 +761,7 @@ class Shell(ctk.CTk):
     def _filter_deleted(self, dialog: ConfirmDeleteDialog, item: FilterResponse) -> None:
         dialog.close()
         self._filters_screen.set_row_busy(item.id, False)
-        self._flash_message(ru.FILTERS_DELETED)
+        self._flash_message(ru.FILTERS_DELETED, MessageKind.SUCCESS)
         self._refresh_filters()
 
     def _filter_delete_failed(
@@ -761,13 +775,13 @@ class Shell(ctk.CTk):
 
     # -- menu / status / shutdown ---------------------------------------------
 
-    def _flash_message(self, text: str) -> None:
-        """Set the status-bar message and clear it after a short delay."""
+    def _flash_message(self, text: str, kind: MessageKind = MessageKind.INFO) -> None:
+        """Set the status-bar message and clear it after the kind's linger time."""
         if self._message_job is not None:
             with suppress(tk.TclError):
                 self.after_cancel(self._message_job)
-        self._status_bar.set_message(text)
-        self._message_job = self.after(MESSAGE_LINGER_MS, self._clear_message)
+        self._status_bar.set_message(text, kind)
+        self._message_job = self.after(MESSAGE_TTL_MS[kind], self._clear_message)
 
     def _clear_message(self) -> None:
         self._message_job = None

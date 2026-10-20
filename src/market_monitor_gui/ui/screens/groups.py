@@ -15,6 +15,7 @@ from market_monitor_gui.api.dto import GroupResponse
 from market_monitor_gui.services.groups import GroupsData
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.banner import Banner, BannerKind
 from market_monitor_gui.ui.controls import button_state, set_button_enabled
 from market_monitor_gui.ui.groups_view import (
     ellipsize,
@@ -47,6 +48,7 @@ class GroupsScreen(ScreenFrame):
         self._on_edit = on_edit
         self._on_toggle = on_toggle
         self._on_delete = on_delete
+        self._on_refresh = on_refresh
         self._on_open_url = on_open_url
         self._rows: dict[int, _GroupRow] = {}
         self._busy: set[int] = set()
@@ -75,23 +77,13 @@ class GroupsScreen(ScreenFrame):
         )
         self._count.pack(fill="x", pady=(theme.BANNER_TOP, 0))
 
-        self._banner = ctk.CTkLabel(
-            self.body,
-            text="",
-            font=fonts.small,
-            text_color=theme.colour("warn"),
-            wraplength=720,
-            justify="left",
-            anchor="w",
-        )
-        self._banner.pack(fill="x", pady=(theme.BANNER_TOP, theme.BANNER_BOTTOM))
-
         self._list = ctk.CTkScrollableFrame(
             self.body,
             fg_color="transparent",
             scrollbar_fg_color="transparent",
             scrollbar_button_color=theme.colour("muted"),
         )
+        self._banner = Banner(self.body, fonts=fonts, wraplength=720, after=self._count)
         self._list.pack(fill="both", expand=True)
         self._list.grid_columnconfigure(0, weight=1)
         enable_wheel_scroll(self._list)
@@ -108,7 +100,7 @@ class GroupsScreen(ScreenFrame):
 
     def set_loading(self) -> None:
         self._loading = True
-        self._banner.configure(text=ru.GROUPS_LOADING, text_color=theme.colour("muted"))
+        self._banner.show(BannerKind.LOADING, ru.GROUPS_LOADING)
         self._apply_state()
 
     def render(self, data: GroupsData) -> None:
@@ -139,12 +131,9 @@ class GroupsScreen(ScreenFrame):
         if not groups:
             self._empty.grid(row=0, column=0, sticky="w", pady=theme.ROW_PAD_Y)
         if data.from_cache:
-            self._banner.configure(
-                text=ru.fmt_data_cached_readonly(data.cached_at),
-                text_color=theme.colour("warn"),
-            )
+            self._banner.show(BannerKind.CACHED, ru.fmt_data_cached_readonly(data.cached_at))
         else:
-            self._banner.configure(text="", text_color=theme.colour("warn"))
+            self._banner.clear()
         self._loading = False
         self._apply_state()
 
@@ -152,16 +141,17 @@ class GroupsScreen(ScreenFrame):
         """The read failed: report it and lock mutations until a successful read."""
         self._read_only = True
         self._loading = False
-        self._banner.configure(
-            text=ru.fmt_readonly_notice(ru.text_for(text_key)),
-            text_color=theme.colour("error"),
+        self._banner.show(
+            BannerKind.ERROR,
+            ru.fmt_readonly_notice(ru.text_for(text_key)),
+            on_action=self._on_refresh,
         )
         self._apply_state()
 
     def show_write_error(self, text_key: str) -> None:
         """A mutation failed: report it but keep the controls usable for a retry."""
         self._loading = False
-        self._banner.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
+        self._banner.show(BannerKind.ERROR, ru.text_for(text_key))
         self._apply_state()
 
     def _apply_state(self) -> None:

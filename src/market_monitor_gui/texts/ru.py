@@ -145,6 +145,19 @@ ABOUT_VERSION_LABEL: Final[str] = "Версия"
 STATUS_LAST_REFRESH: Final[str] = "Обновлено: {when}"
 STATUS_NEVER_REFRESHED: Final[str] = "Данные ещё не загружались"
 
+# --- Feedback glyphs (decorative; the words stay authoritative) --------------
+# Kept here like the sidebar icons: operator-visible, so not hardcoded in widgets.
+# Verified present in DejaVu Sans; a missing glyph is cosmetic only.
+
+BANNER_GLYPH_LOADING: Final[str] = "◌"
+BANNER_GLYPH_CACHED: Final[str] = "⚠"
+BANNER_GLYPH_ERROR: Final[str] = "✗"
+BANNER_GLYPH_INFO: Final[str] = "•"
+MSG_GLYPH_INFO: Final[str] = "•"
+MSG_GLYPH_SUCCESS: Final[str] = "✓"
+MSG_GLYPH_WARN: Final[str] = "⚠"
+MSG_GLYPH_ERROR: Final[str] = "✗"
+
 # --- Check connection feedback -----------------------------------------------
 
 STATUS_CHECK_OK: Final[str] = "Соединение в порядке."
@@ -186,6 +199,7 @@ GROUPS_EMPTY: Final[str] = "Групп пока нет. Добавьте пер�
 GROUPS_COUNT: Final[str] = "Групп: {count}"
 GROUPS_SAVED: Final[str] = "Группа сохранена."
 GROUPS_DELETED: Final[str] = "Группа удалена."
+GROUP_DISABLED: Final[str] = "Группа отключена."
 GROUP_EDITOR_TITLE_ADD: Final[str] = "Добавить группу"
 GROUP_EDITOR_TITLE_EDIT: Final[str] = "Изменить группу"
 GROUP_NAME_LABEL: Final[str] = "Название"

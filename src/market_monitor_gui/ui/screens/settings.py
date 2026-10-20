@@ -16,6 +16,7 @@ import customtkinter as ctk
 from market_monitor_gui.services.settings import SettingsData
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.banner import Banner, BannerKind
 from market_monitor_gui.ui.controls import set_button_enabled
 from market_monitor_gui.ui.forms import parse_threshold_percent
 from market_monitor_gui.ui.screens.base import ScreenFrame
@@ -35,23 +36,23 @@ class SettingsScreen(ScreenFrame):
     ) -> None:
         super().__init__(master, title=ru.SIDEBAR_SETTINGS, fonts=fonts)
         self._on_save = on_save
+        self._on_refresh = on_refresh
         self._value = tk.StringVar()
         self._loading = False
         self._busy = False
         self._read_only = False
 
-        self._banner = ctk.CTkLabel(
-            self.body,
-            text="",
-            font=fonts.small,
-            text_color=theme.colour("muted"),
-            wraplength=640,
-            justify="left",
-            anchor="w",
+        threshold_label = ctk.CTkLabel(
+            self.body, text=ru.LABEL_THRESHOLD, font=fonts.body, anchor="w"
         )
-        self._banner.pack(fill="x", pady=(0, theme.SECTION_GAP))
-
-        ctk.CTkLabel(self.body, text=ru.LABEL_THRESHOLD, font=fonts.body, anchor="w").pack(fill="x")
+        self._banner = Banner(
+            self.body,
+            fonts=fonts,
+            wraplength=640,
+            pady=(0, theme.SECTION_GAP),
+            before=threshold_label,
+        )
+        threshold_label.pack(fill="x")
         self._entry = ctk.CTkEntry(self.body, textvariable=self._value, width=200)
         self._entry.pack(anchor="w", pady=(theme.FIELD_GAP, theme.FIELD_BOTTOM))
         self._entry.bind("<Return>", self._on_return)
@@ -98,7 +99,7 @@ class SettingsScreen(ScreenFrame):
 
     def set_loading(self) -> None:
         self._loading = True
-        self._banner.configure(text=ru.SETTINGS_LOADING, text_color=theme.colour("muted"))
+        self._banner.show(BannerKind.LOADING, ru.SETTINGS_LOADING)
         self._apply_state()
 
     def render(self, data: SettingsData) -> None:
@@ -106,12 +107,9 @@ class SettingsScreen(ScreenFrame):
         self._value.set(format_threshold(data.price_drop_threshold_percent))
         self._read_only = data.from_cache
         if data.from_cache:
-            self._banner.configure(
-                text=ru.fmt_data_cached_readonly(data.cached_at),
-                text_color=theme.colour("warn"),
-            )
+            self._banner.show(BannerKind.CACHED, ru.fmt_data_cached_readonly(data.cached_at))
         else:
-            self._banner.configure(text="", text_color=theme.colour("muted"))
+            self._banner.clear()
         self._status.configure(text="")
         self._loading = False
         self._busy = False
@@ -122,9 +120,10 @@ class SettingsScreen(ScreenFrame):
         self._read_only = True
         self._loading = False
         self._busy = False
-        self._banner.configure(
-            text=ru.fmt_readonly_notice(ru.text_for(text_key)),
-            text_color=theme.colour("error"),
+        self._banner.show(
+            BannerKind.ERROR,
+            ru.fmt_readonly_notice(ru.text_for(text_key)),
+            on_action=self._on_refresh,
         )
         self._apply_state()
 

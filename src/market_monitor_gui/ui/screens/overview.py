@@ -14,6 +14,7 @@ import customtkinter as ctk
 from market_monitor_gui.services.overview import OverviewData
 from market_monitor_gui.texts import ru
 from market_monitor_gui.ui import theme
+from market_monitor_gui.ui.banner import Banner, BannerKind
 from market_monitor_gui.ui.overview_view import overview_cards, scan_run_line
 from market_monitor_gui.ui.screens.base import ScreenFrame
 
@@ -30,6 +31,7 @@ class OverviewScreen(ScreenFrame):
         on_check: Callable[[], None],
     ) -> None:
         super().__init__(master, title=ru.SIDEBAR_OVERVIEW, fonts=fonts)
+        self._on_refresh = on_refresh
 
         toolbar = ctk.CTkFrame(self.body, fg_color="transparent")
         toolbar.pack(fill="x")
@@ -47,18 +49,8 @@ class OverviewScreen(ScreenFrame):
             **theme.secondary_button(),
         ).pack(side="left", padx=theme.TOOLBAR_GAP)
 
-        self._banner = ctk.CTkLabel(
-            self.body,
-            text="",
-            font=fonts.small,
-            text_color=theme.colour("warn"),
-            wraplength=640,
-            justify="left",
-            anchor="w",
-        )
-        self._banner.pack(fill="x", pady=(theme.BANNER_TOP, theme.BANNER_BOTTOM))
-
         self._cards = ctk.CTkFrame(self.body, fg_color="transparent")
+        self._banner = Banner(self.body, fonts=fonts, wraplength=640, before=self._cards)
         self._cards.pack(fill="both", expand=True)
         self._cards.grid_columnconfigure(0, weight=1)
         self._cards.grid_columnconfigure(1, weight=1)
@@ -80,27 +72,25 @@ class OverviewScreen(ScreenFrame):
         self._refresh_button.configure(state="disabled" if busy else "normal")
 
     def set_loading(self) -> None:
-        self._banner.configure(text=ru.OVERVIEW_LOADING, text_color=theme.colour("muted"))
+        self._banner.show(BannerKind.LOADING, ru.OVERVIEW_LOADING)
         self.set_busy(True)
 
     def show_empty_hint(self) -> None:
-        self._banner.configure(text=ru.OVERVIEW_EMPTY_HINT, text_color=theme.colour("muted"))
+        self._banner.show(BannerKind.INFO, ru.OVERVIEW_EMPTY_HINT)
 
     def render(self, data: OverviewData) -> None:
         """Render the fetched data, labelling cached/stale values with a time."""
         self._render_cards(data)
         if data.from_cache:
-            self._banner.configure(
-                text=ru.fmt_data_cached(data.cached_at), text_color=theme.colour("warn")
-            )
+            self._banner.show(BannerKind.CACHED, ru.fmt_data_cached(data.cached_at))
         else:
-            self._banner.configure(text="", text_color=theme.colour("warn"))
+            self._banner.clear()
         line = scan_run_line(data)
         self._scan_line.configure(text=line or "")
         self.set_busy(False)
 
     def show_read_error(self, text_key: str) -> None:
-        self._banner.configure(text=ru.text_for(text_key), text_color=theme.colour("error"))
+        self._banner.show(BannerKind.ERROR, ru.text_for(text_key), on_action=self._on_refresh)
         self.set_busy(False)
 
     # -- internals ------------------------------------------------------------

@@ -79,6 +79,10 @@ PALETTE: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
         "hover": ("#e3e8ee", "#343a40"),
         "surface": ("#f6f7f9", "#2b2f36"),
         "disabled_surface": ("#e6e8eb", "#2f333a"),
+        "error_surface": ("#fdf0f0", "#3a2024"),
+        "warn_surface": ("#fff8e5", "#3a3320"),
+        "info_surface": ("#eef4fd", "#1f2a3a"),
+        "info_text": ("#0969da", "#79b8ff"),
     }
 )
 
