@@ -134,6 +134,33 @@ def test_filters_keys_exist() -> None:
     assert required <= set(ru.TEXT_KEYS)
 
 
+def test_readonly_keys_exist_and_are_russian() -> None:
+    required = {"DATA_CACHED_READONLY", "READONLY_NOTICE"}
+    assert required <= set(ru.TEXT_KEYS)
+    for name in required:
+        assert _CYRILLIC.search(ru.TEXT_KEYS[name]), f"{name} must contain Russian text"
+
+
+def test_cached_readonly_note_keeps_the_help_prefix() -> None:
+    from datetime import UTC, datetime
+
+    when = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    text = ru.fmt_data_cached_readonly(None)
+    assert text.startswith(ru.fmt_data_cached(None))
+    assert ru.fmt_data_cached_readonly(when) != ru.fmt_data_cached(when)
+
+
+def test_readonly_notice_appends_the_consequence() -> None:
+    reason = ru.ERR_NETWORK
+    assert ru.fmt_readonly_notice(reason) == f"{reason} {ru.READONLY_NOTICE}"
+    assert ru.fmt_readonly_notice("") == ru.READONLY_NOTICE
+
+
+def test_help_offline_body_still_quotes_the_cached_prefix() -> None:
+    prefix = ru.DATA_CACHED.split("{when}")[0].strip()
+    assert prefix in ru.HELP_OFFLINE_BODY
+
+
 def test_help_keys_exist() -> None:
     required = {
         "HELP_INTRO_HEADING",

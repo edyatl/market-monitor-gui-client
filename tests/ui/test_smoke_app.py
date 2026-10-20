@@ -186,6 +186,44 @@ def test_settings_and_filters_are_real_screens(
 
 
 @pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_cached_data_locks_settings_and_shows_role_colours(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """G14: cached settings are read-only and primary actions stay accent-filled."""
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from datetime import UTC, datetime
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.services.settings import SettingsData
+    from market_monitor_gui.ui import theme
+    from market_monitor_gui.ui.app import Shell
+
+    context = AppContext.create()
+    try:
+        shell = Shell(context)
+        shell.update()
+        settings = shell._settings_screen
+        settings.render(
+            SettingsData(
+                price_drop_threshold_percent=10.0,
+                from_cache=True,
+                cached_at=datetime.now(UTC),
+            )
+        )
+        shell.update()
+
+        assert settings._entry.cget("state") == "disabled"
+        assert settings._save_button.cget("state") == "disabled"
+        assert settings._save_button.cget("fg_color") == theme.colour("disabled_surface")
+        assert shell._groups_screen._add_button.cget("fg_color") == theme.colour("accent")
+        assert shell._filters_screen._add_button.cget("text_color") == theme.colour("on_accent")
+        shell.destroy()
+    finally:
+        context.close()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
 def test_sidebar_and_menu_show_decorative_icons(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

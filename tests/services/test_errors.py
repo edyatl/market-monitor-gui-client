@@ -27,12 +27,12 @@ def test_auth_required_error_keeps_missing_secret_key() -> None:
 
 
 def test_unknown_exception_maps_to_generic_key() -> None:
-    assert text_key_for_exception(RuntimeError("boom")) == ru.ERR_UNEXPECTED
+    assert text_key_for_exception(RuntimeError("boom")) == "ERR_UNEXPECTED"
 
 
 def test_login_failure_401_uses_login_failed_text() -> None:
     exc = ApiError(ErrorKind.UNAUTHORIZED, status_code=401)
-    assert login_failure_text_key(exc) == ru.LOGIN_FAILED
+    assert login_failure_text_key(exc) == "LOGIN_FAILED"
 
 
 def test_login_failure_network_keeps_network_text() -> None:
