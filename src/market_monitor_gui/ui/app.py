@@ -38,7 +38,7 @@ from market_monitor_gui.services.groups import (
 from market_monitor_gui.services.overview import OverviewData, load_overview
 from market_monitor_gui.services.settings import SettingsData, load_settings, save_settings
 from market_monitor_gui.texts import ru
-from market_monitor_gui.ui import theme
+from market_monitor_gui.ui import icons, theme
 from market_monitor_gui.ui.connection_state import ConnectionState, state_for_error
 from market_monitor_gui.ui.dialogs.about import AboutDialog
 from market_monitor_gui.ui.dialogs.base import BaseDialog
@@ -100,6 +100,7 @@ class Shell(ctk.CTk):
 
     def _configure_window(self) -> None:
         self.title(ru.APP_NAME)
+        self._icon_applied = icons.apply_window_icon(self)
         self.minsize(theme.MIN_WIDTH, theme.MIN_HEIGHT)
         geometry = self._ctx.ui_state.get_window_geometry()
         self.geometry(geometry or f"{theme.MIN_WIDTH}x{theme.MIN_HEIGHT}")

@@ -7,7 +7,7 @@ import tkinter as tk
 
 import customtkinter as ctk
 
-from market_monitor_gui.ui import theme
+from market_monitor_gui.ui import icons, theme
 
 
 class BaseDialog(ctk.CTkToplevel):
@@ -29,6 +29,7 @@ class BaseDialog(ctk.CTkToplevel):
         self.transient(master)
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.bind("<Escape>", self._on_escape)
+        icons.apply_window_icon(self)
 
     @property
     def fonts(self) -> theme.Fonts:

@@ -120,6 +120,20 @@ Russian UI strings live only under `texts/ru.py` (Ruff rule exceptions configure
 3. Optionally build one-file; re-test config path next to the real binary.
 4. Repeat for Windows when Linux is stable.
 
+The window icon is resolved **relative to the package**, never the working directory, so
+frozen builds must ship the icon assets:
+
+- `src/market_monitor_gui/assets/icons/app.ico` — window icon on Windows, and the
+  recommended executable icon when packaging:
+  `--windows-icon-from-ico=src/market_monitor_gui/assets/icons/app.ico`
+- `src/market_monitor_gui/assets/icons/app-256.png` — window icon on Linux/macOS and the
+  About-dialog logo
+
+Include both with `--include-package-data=market_monitor_gui` (or
+`--include-data-dir=src/market_monitor_gui/assets=market_monitor_gui/assets`). A build
+without them still starts, just without an icon. Wheel/editable installs already ship the
+files as package data.
+
 Exact build commands will live under `scripts/` once packaging tasks are implemented.
 
 ## Security notes

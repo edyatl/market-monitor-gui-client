@@ -30,6 +30,7 @@ def test_shell_constructs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
         shell = Shell(context)
         shell.update_idletasks()
         assert shell.winfo_exists()
+        assert shell._icon_applied is True
         shell.destroy()
     finally:
         context.close()
