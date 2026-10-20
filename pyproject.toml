@@ -1,6 +1,6 @@
 [project]
 name = "market-monitor-gui-client"
-version = "0.1.0"
+version = "v1.0.0-alpha"
 description = "Desktop GUI client for the Market Monitor control-plane API"
 readme = "README.md"
 authors = [
