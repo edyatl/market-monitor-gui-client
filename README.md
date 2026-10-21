@@ -115,10 +115,17 @@ Russian UI strings live only under `texts/ru.py` (Ruff rule exceptions configure
 
 ## Packaging (Nuitka)
 
-1. Run and test from source on Linux.
-2. Build standalone, verify TLS, HTTP/2 negotiation, secret save/load, and UI assets.
-3. Optionally build one-file; re-test config path next to the real binary.
-4. Repeat for Windows when Linux is stable.
+Nuitka is the packaging tool for Linux and Windows. Windows releases are built by
+GitHub Actions (see below); the same commands work locally. A Linux smoke build:
+
+```bash
+uv sync
+uv run nuitka --standalone --assume-yes-for-downloads --enable-plugin=tk-inter \
+  --output-dir=build --output-filename=MarketMonitor \
+  --include-package-data=customtkinter --include-package-data=certifi \
+  --include-data-dir=src/market_monitor_gui/assets=market_monitor_gui/assets \
+  src/market_monitor_gui/main.py
+```
 
 The window icon is resolved **relative to the package**, never the working directory, so
 frozen builds must ship the icon assets:
@@ -134,7 +141,73 @@ Include both with `--include-package-data=market_monitor_gui` (or
 without them still starts, just without an icon. Wheel/editable installs already ship the
 files as package data.
 
-Exact build commands will live under `scripts/` once packaging tasks are implemented.
+The full Windows command (including the exe icon, hidden console, and version metadata)
+lives in `scripts/build_windows.ps1`; see `scripts/build_windows.md`.
+
+## Windows release (GitHub Actions)
+
+`.github/workflows/release-windows.yml` builds the portable Windows x64 bundle on
+`windows-latest` with Nuitka `--standalone` (onedir), zips it as
+**`MarketMonitor-windows-x64.zip`** (a top-level `MarketMonitor/` folder with
+`MarketMonitor.exe`), uploads a workflow artifact, and attaches the zip to the GitHub
+Release for the tag.
+
+### Tagging a release
+
+```bash
+git tag -a v0.1.0 -m "Market Monitor GUI 0.1.0"
+git push origin v0.1.0
+```
+
+The version comes from the tag: `v0.1.0` → `0.1.0`, `v1.0.0-alpha` → `1.0.0a0`.
+`__version__` in `src/market_monitor_gui/__init__.py` is the single source of truth
+(hatchling reads it for the wheel); CI rewrites it from the tag on the checked-out tree
+only — that mutation is never committed.
+
+### Running the workflow manually
+
+Actions → **release-windows** → **Run workflow**:
+
+- with a **tag** input (e.g. `v0.1.0`) → rebuild and replace the asset on that tag's
+  release;
+- **without** a tag → build the selected ref and keep the zip as a workflow artifact only
+  (no Release).
+
+The job needs only `GITHUB_TOKEN` (`contents: write`); no repository secrets are used.
+
+### What the operator downloads
+
+`MarketMonitor-windows-x64.zip` from the release page → extract the whole `MarketMonitor`
+folder → run `MarketMonitor.exe`. Python is not required.
+
+- The shared application secret is **entered in the app** (Settings screen; the UI is in
+  Russian) and stored encrypted under `%LOCALAPPDATA%\market-monitor-gui`; it is never
+  baked into the build.
+- The build is unsigned. Windows SmartScreen may show "Windows protected your PC": click
+  **"More info" → "Run anyway"**. Antivirus products may warn about an unknown
+  executable; code signing is a later step.
+- The API origin is pre-filled with the production default and can be changed in Settings.
+- If Windows reports a missing `VCRUNTIME140.dll`, install the Microsoft Visual C++
+  2015–2022 Redistributable (x64).
+
+Russian operator notes are attached to every release as `release-notes.russian.md`
+(the English text below is the release body).
+
+### Windows 10 VM smoke checklist
+
+1. Fresh Windows 10 x64 VM without Python.
+2. Extract the zip and run `MarketMonitor.exe` — the window opens with the app icon.
+3. `MarketMonitor.exe --version` in a console prints the version.
+4. Open Settings → check the API origin → enter APP_SECRET → save → connect.
+5. Overview/Groups/Filters load; make one harmless change and reload to confirm it stuck.
+6. Restart the app: the secret and API origin survive; no `.env` exists in the app folder.
+7. `%LOCALAPPDATA%\market-monitor-gui` contains `config.json`, `secret.key`, `secret.enc`.
+
+### Fallback
+
+If the Nuitka/MSVC toolchain is unavailable, the PyInstaller path in
+`scripts/build_windows.md` (`pwsh -File scripts/build_windows.ps1 -Freezer PyInstaller`)
+produces the same `MarketMonitor-windows-x64.zip` layout without a C compiler.
 
 ## Security notes
 

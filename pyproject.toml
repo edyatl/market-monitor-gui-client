@@ -1,6 +1,8 @@
 [project]
 name = "market-monitor-gui-client"
-version = "v1.0.0-alpha"
+# Single source of truth: ``__version__`` in src/market_monitor_gui/__init__.py.
+# Release builds rewrite it from the git tag (scripts/set_version.py).
+dynamic = ["version"]
 description = "Desktop GUI client for the Market Monitor control-plane API"
 readme = "README.md"
 authors = [
@@ -30,6 +32,8 @@ dev = [
     "ruff>=0.11,<1.0",
     "respx>=0.21,<1.0",
     "types-certifi>=2021.10.8",
+    # Packaging (scripts/build_windows.ps1); build tool only, not a runtime dependency.
+    "nuitka>=4.2,<5",
 ]
 
 [project.scripts]
@@ -38,6 +42,9 @@ market-monitor-gui = "market_monitor_gui.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/market_monitor_gui/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/market_monitor_gui"]

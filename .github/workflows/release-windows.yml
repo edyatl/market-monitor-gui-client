@@ -1,0 +1,189 @@
+name: release-windows
+
+# Builds the portable Windows x64 bundle and attaches it to a GitHub Release.
+#
+# - Push an annotated tag `vX.Y.Z` -> build + release.
+# - Run manually (Actions -> release-windows -> Run workflow) with a tag input ->
+#   build + release for that tag.
+# - Run manually without a tag -> build + workflow artifact only (no release).
+#
+# Only GITHUB_TOKEN is used; the application secret is entered by the operator in the
+# app and is never part of the workflow or the binary.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build (e.g. v0.1.0). Leave empty to build the current ref without a release."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  PYTHON_VERSION: "3.14"
+  ASSET_NAME: MarketMonitor-windows-x64.zip
+  RUSSIAN_NOTES: release-notes.russian.md
+
+jobs:
+  build:
+    name: Build Windows release
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.13.4"
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Resolve release version
+        id: version
+        run: |
+          $tag = "${{ inputs.tag }}".Trim()
+          if (-not $tag -and "${{ github.ref_type }}" -eq "tag") {
+            $tag = "${{ github.ref_name }}"
+          }
+          if ($tag) {
+            $version = (uv run --no-project --quiet python scripts/set_version.py $tag --print).Trim()
+            if ($LASTEXITCODE -ne 0 -or -not $version) {
+              throw "Tag '$tag' is not a valid release tag (expected vX.Y.Z)."
+            }
+            Write-Host "Release tag: $tag -> version $version"
+          }
+          else {
+            $version = (uv run --no-project --quiet python scripts/set_version.py --get).Trim()
+            Write-Host "::notice::No release tag; building the current ref as $version without publishing a release."
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: uv sync --frozen --python $env:PYTHON_VERSION
+
+      - name: Apply release version
+        if: ${{ steps.version.outputs.tag != '' }}
+        run: uv run --no-project python scripts/set_version.py ${{ steps.version.outputs.tag }}
+
+      - name: Build (Nuitka standalone)
+        run: pwsh -File scripts/build_windows.ps1
+
+      - name: Verify bundle
+        run: |
+          $dist = "build/MarketMonitor"
+          $required = @(
+            "$dist/MarketMonitor.exe",
+            "$dist/market_monitor_gui/assets/icons/app.ico",
+            "$dist/market_monitor_gui/assets/icons/app-256.png",
+            "MarketMonitor-windows-x64.zip"
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Missing from the build: $path"
+            }
+          }
+
+          $secretFiles = Get-ChildItem -Path $dist -Recurse -File -Force |
+            Where-Object { $_.Name -in @(".env", "secret.key", "secret.enc") -or $_.Extension -eq ".key" }
+          if ($secretFiles) {
+            throw "Secret material found in the build: $($secretFiles.FullName -join ', ')"
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $env:ASSET_NAME))
+          try {
+            $entries = $zip.Entries.FullName
+            foreach ($entry in @(
+              "MarketMonitor/MarketMonitor.exe",
+              "MarketMonitor/market_monitor_gui/assets/icons/app.ico",
+              "MarketMonitor/market_monitor_gui/assets/icons/app-256.png"
+            )) {
+              if ($entries -notcontains $entry) {
+                throw "Missing from $env:ASSET_NAME: $entry"
+              }
+            }
+          }
+          finally {
+            $zip.Dispose()
+          }
+          Write-Host "Bundle contents verified."
+
+      - name: Smoke test frozen executable
+        run: |
+          $exe = "build/MarketMonitor/MarketMonitor.exe"
+          $process = Start-Process -FilePath $exe -ArgumentList "--version" -Wait -PassThru
+          $process.WaitForExit()
+          $process.Refresh()
+          $code = $process.ExitCode
+          if ($null -eq $code -or $code -ne 0) {
+            throw "MarketMonitor.exe --version exited with $code"
+          }
+          Write-Host "Frozen executable starts and reports the version (exit code 0)."
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: MarketMonitor-windows-x64
+          path: MarketMonitor-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: ${{ steps.version.outputs.tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $version = "${{ steps.version.outputs.version }}"
+          $date = Get-Date -Format "yyyy-MM-dd"
+          $notes = Get-Content -Raw -LiteralPath scripts/release_notes.template.md
+          $notes = $notes.
+            Replace("{{version}}", $version).
+            Replace("{{tag}}", $tag).
+            Replace("{{asset}}", $env:ASSET_NAME).
+            Replace("{{date}}", $date)
+          Set-Content -LiteralPath release-notes.md -Value $notes -Encoding utf8
+
+          $russian = Get-Content -Raw -LiteralPath scripts/release_notes.template.russian.md
+          $russian = $russian.
+            Replace("{{version}}", $version).
+            Replace("{{tag}}", $tag).
+            Replace("{{asset}}", $env:ASSET_NAME).
+            Replace("{{date}}", $date)
+          Set-Content -LiteralPath $env:RUSSIAN_NOTES -Value $russian -Encoding utf8
+
+          gh release view $tag *> $null
+          $exists = $LASTEXITCODE -eq 0
+          if ($exists) {
+            Write-Host "Release $tag exists; replacing the assets."
+            gh release upload $tag $env:ASSET_NAME $env:RUSSIAN_NOTES --clobber
+          }
+          else {
+            gh release create $tag $env:ASSET_NAME $env:RUSSIAN_NOTES `
+              --title "Market Monitor — Desktop GUI $version" `
+              --notes-file release-notes.md `
+              --verify-tag
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "Publishing the GitHub Release failed."
+          }

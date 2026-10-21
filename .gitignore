@@ -33,6 +33,11 @@ files/
 *.mp3
 **/*.mp3
 
+# Release bundle produced by scripts/build_windows.ps1
+MarketMonitor-windows-x64.zip
+release-notes.md
+release-notes.russian.md
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
