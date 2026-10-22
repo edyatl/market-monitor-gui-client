@@ -14,6 +14,12 @@
     is unavailable or the Nuitka build fails, use ``-Freezer PyInstaller`` as a fallback;
     it produces the same layout and zip name.
 
+    Both freezers run in a runtime-only environment (``--no-default-groups``), with the
+    freeze tool from the ``packaging`` group or an ephemeral ``--with`` overlay. Dev
+    tools must not be installed during a build: Nuitka follows ``pydantic.mypy`` and
+    would otherwise compile all of ``mypy`` into the bundle. Run ``uv sync`` afterwards
+    to restore the ``dev`` group for day-to-day work.
+
 .PARAMETER Freezer
     ``Nuitka`` (default) or ``PyInstaller``.
 
@@ -74,9 +80,16 @@ try {
             '--output-filename=MarketMonitor.exe',
             "--windows-icon-from-ico=$iconPath",
             '--windows-console-mode=disable',
-            '--include-package-data=customtkinter',
-            '--include-package-data=certifi',
             '--include-data-dir=src/market_monitor_gui/assets=market_monitor_gui/assets',
+            '--nofollow-import-to=mypy',
+            '--nofollow-import-to=pydantic.mypy',
+            '--nofollow-import-to=pydantic.v1.mypy',
+            '--nofollow-import-to=pytest',
+            '--nofollow-import-to=_pytest',
+            '--nofollow-import-to=pyright',
+            '--nofollow-import-to=ruff',
+            '--nofollow-import-to=setuptools',
+            "--report=$OutputDir/nuitka-report.xml",
             '--company-name=Market Monitor',
             '--product-name=Market Monitor',
             '--file-description=Market Monitor desktop client',
@@ -85,7 +98,7 @@ try {
             '--remove-output',
             'src/market_monitor_gui/main.py'
         )
-        uv run --frozen nuitka @nuitkaArgs
+        uv run --frozen --exact --no-default-groups --group packaging nuitka @nuitkaArgs
         if ($LASTEXITCODE -ne 0) {
             throw "Nuitka build failed with exit code $LASTEXITCODE"
         }
@@ -113,7 +126,7 @@ try {
             '--specpath', $OutputDir,
             'src/market_monitor_gui/main.py'
         )
-        uv run --frozen --with 'pyinstaller>=6.15,<7' pyinstaller @pyInstallerArgs
+        uv run --frozen --exact --no-default-groups --with 'pyinstaller>=6.15,<7' pyinstaller @pyInstallerArgs
         if ($LASTEXITCODE -ne 0) {
             throw "PyInstaller build failed with exit code $LASTEXITCODE"
         }

@@ -32,7 +32,11 @@ dev = [
     "ruff>=0.11,<1.0",
     "respx>=0.21,<1.0",
     "types-certifi>=2021.10.8",
-    # Packaging (scripts/build_windows.ps1); build tool only, not a runtime dependency.
+]
+# Build tooling (scripts/build_windows.ps1). Kept out of ``dev`` so a release build never
+# installs type checkers or test runners into the freeze environment: Nuitka follows
+# ``pydantic.mypy`` (its built-in package config) and would compile all of ``mypy``.
+packaging = [
     "nuitka>=4.2,<5",
 ]
 

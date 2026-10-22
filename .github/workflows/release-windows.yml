@@ -78,8 +78,8 @@ jobs:
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Install dependencies
-        run: uv sync --frozen --python $env:PYTHON_VERSION
+      - name: Install dependencies (runtime + packaging only)
+        run: uv sync --frozen --no-default-groups --group packaging --python $env:PYTHON_VERSION
 
       - name: Apply release version
         if: ${{ steps.version.outputs.tag != '' }}
@@ -95,6 +95,9 @@ jobs:
             "$dist/MarketMonitor.exe",
             "$dist/market_monitor_gui/assets/icons/app.ico",
             "$dist/market_monitor_gui/assets/icons/app-256.png",
+            "$dist/certifi/cacert.pem",
+            "$dist/customtkinter/assets/themes/dark-blue.json",
+            "$dist/customtkinter/assets/fonts/Roboto/Roboto-Regular.ttf",
             "MarketMonitor-windows-x64.zip"
           )
           foreach ($path in $required) {
@@ -116,7 +119,10 @@ jobs:
             foreach ($entry in @(
               "MarketMonitor/MarketMonitor.exe",
               "MarketMonitor/market_monitor_gui/assets/icons/app.ico",
-              "MarketMonitor/market_monitor_gui/assets/icons/app-256.png"
+              "MarketMonitor/market_monitor_gui/assets/icons/app-256.png",
+              "MarketMonitor/certifi/cacert.pem",
+              "MarketMonitor/customtkinter/assets/themes/dark-blue.json",
+              "MarketMonitor/customtkinter/assets/fonts/Roboto/Roboto-Regular.ttf"
             )) {
               if ($entries -notcontains $entry) {
                 throw "Missing from $env:ASSET_NAME: $entry"
@@ -127,6 +133,27 @@ jobs:
             $zip.Dispose()
           }
           Write-Host "Bundle contents verified."
+
+      - name: Verify freeze graph
+        run: |
+          $report = "build/nuitka-report.xml"
+          if (-not (Test-Path -LiteralPath $report)) {
+            throw "Nuitka report not found: $report"
+          }
+          $names = @(
+            Select-Xml -Path $report -XPath "//module" |
+              ForEach-Object { $_.Node.GetAttribute("name") }
+          )
+          $bad = $names | Where-Object {
+            $_ -match '^(mypy|pydantic\.mypy|pydantic\.v1\.mypy|pytest|_pytest|pyright|ruff)'
+          }
+          if ($bad) {
+            throw "Dev tooling entered the freeze graph: $($bad -join ', ')"
+          }
+          if (Test-Path -LiteralPath "build/MarketMonitor/mypy") {
+            throw "The mypy package was shipped in the dist."
+          }
+          Write-Host "Freeze graph: $($names.Count) modules, no dev tooling."
 
       - name: Smoke test frozen executable
         run: |

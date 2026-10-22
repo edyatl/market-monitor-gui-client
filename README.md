@@ -138,16 +138,25 @@ Russian UI strings live only under `texts/ru.py` (Ruff rule exceptions configure
 ## Packaging (Nuitka)
 
 Nuitka is the packaging tool for Linux and Windows. Windows releases are built by
-GitHub Actions (see below); the same commands work locally. A Linux smoke build:
+GitHub Actions (see below); the same commands work locally. Nuitka lives in the
+non-default `packaging` dependency group so a build never installs the `dev` group
+(mypy, pytest, ruff, …) into the freeze environment — Nuitka follows
+`pydantic.mypy`, which imports `mypy.*`, and would otherwise compile the whole type
+checker into the bundle. A Linux smoke build:
 
 ```bash
-uv sync
-uv run nuitka --standalone --assume-yes-for-downloads --enable-plugin=tk-inter \
+uv sync --frozen --no-default-groups --group packaging
+uv run --frozen --exact --no-default-groups --group packaging nuitka \
+  --standalone --assume-yes-for-downloads --enable-plugin=tk-inter \
   --output-dir=build --output-filename=MarketMonitor \
-  --include-package-data=customtkinter --include-package-data=certifi \
   --include-data-dir=src/market_monitor_gui/assets=market_monitor_gui/assets \
   src/market_monitor_gui/main.py
 ```
+
+Nuitka's built-in package configuration already ships `certifi` (`cacert.pem`) and
+`customtkinter` (`assets/`, including the themes and Roboto fonts), so no
+`--include-package-data` flags are needed. Run `uv sync` afterwards to restore the
+`dev` group for local work.
 
 The window icon is resolved **relative to the package**, never the working directory, so
 frozen builds must ship the icon assets:
@@ -172,7 +181,10 @@ lives in `scripts/build_windows.ps1`; see `scripts/build_windows.md`.
 `windows-latest` with Nuitka `--standalone` (onedir), zips it as
 **`MarketMonitor-windows-x64.zip`** (a top-level `MarketMonitor/` folder with
 `MarketMonitor.exe`), uploads a workflow artifact, and attaches the zip to the GitHub
-Release for the tag.
+Release for the tag. The job installs only runtime dependencies plus the `packaging`
+group (`uv sync --frozen --no-default-groups --group packaging`), verifies that the
+Nuitka report contains no dev tooling (mypy/pytest/pyright/ruff), and checks that the
+`certifi` CA bundle and CustomTkinter theme/font assets are present in the bundle.
 
 ### Tagging a release
 

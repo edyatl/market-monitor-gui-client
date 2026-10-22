@@ -297,13 +297,15 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "nuitka" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "respx" },
     { name = "ruff" },
     { name = "types-certifi" },
+]
+packaging = [
+    { name = "nuitka" },
 ]
 
 [package.metadata]
@@ -319,7 +321,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.15,<2.0" },
-    { name = "nuitka", specifier = ">=4.2,<5" },
     { name = "pyright", specifier = ">=1.1.414" },
     { name = "pytest", specifier = ">=8.0,<9.0" },
     { name = "pytest-asyncio", specifier = ">=0.25,<1.0" },
@@ -327,6 +328,7 @@ dev = [
     { name = "ruff", specifier = ">=0.11,<1.0" },
     { name = "types-certifi", specifier = ">=2021.10.8" },
 ]
+packaging = [{ name = "nuitka", specifier = ">=4.2,<5" }]
 
 [[package]]
 name = "mypy"
