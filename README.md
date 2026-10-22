@@ -67,6 +67,28 @@ Contract details for implementers: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md
 - `API_BASE_URL` is an **origin only** (scheme + host + optional port); a trailing `/api/v1` is tolerated and stripped on load.
 - Automatic login uses the environment / `.env` secret (`APP_SECRET`, or legacy `API_APP_KEY`) first, then the saved encrypted secret. A secret typed in the login dialog is used for that login only.
 
+### Connection and app secret
+
+The app tracks two independent things: whether a **secret** is available (environment
+override or the encrypted store) and the current **session** (signed out, connecting,
+signed in, or expired).
+
+- On startup the app signs in automatically when a secret resolves; otherwise it shows
+  the authentication screen and opens the login dialog.
+- The login dialog has a «keep the secret on this computer» checkbox, **checked by
+  default**. The secret is written only **after a successful login**.
+- If an automatic sign-in is rejected, the login dialog opens in manual-entry mode with
+  the error. Network-only failures just update the status line; retry with «Sign in».
+- **Connection settings** shows whether a secret is saved (as a masked placeholder, never
+  the value), allows replacing it, and offers **Forget secret**. Unchecking the store box
+  and saving also deletes it.
+- **Disconnect** (main menu) ends the session only: cookies are dropped, the saved secret
+  stays, and the authentication screen appears. **Forget secret** in Connection settings
+  deletes the stored secret without ending the current session; the next sign-in needs
+  the secret again.
+- An `APP_SECRET` (or `API_APP_KEY`) override takes precedence over the stored secret and
+  cannot be removed from the UI; Connection settings says so when it is active.
+
 ## Configuration and data locations
 
 | Item | Purpose |
