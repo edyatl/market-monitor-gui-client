@@ -413,3 +413,63 @@ def test_help_is_a_real_static_screen(tmp_path: Path, monkeypatch: pytest.Monkey
         shell.destroy()
     finally:
         context.close()
+
+
+class _ConfirmStub:
+    """Stands in for the modal forget-secret confirmation."""
+
+    def __init__(self) -> None:
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_disconnect_keeps_the_stored_secret(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.texts import ru
+    from market_monitor_gui.ui.app import Shell
+    from market_monitor_gui.ui.connection_state import ConnectionState
+
+    context = AppContext.create()
+    try:
+        context.secrets.save("dummy")
+        shell = Shell(context)
+        shell._disconnect()
+        assert shell._status is ConnectionState.DISCONNECTED
+        assert context.secrets.load() == "dummy"
+        assert shell._auth_screen._login_button.cget("text") == ru.ACTION_LOGIN_AGAIN
+        shell.destroy()
+    finally:
+        context.close()
+
+
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_forget_secret_clears_the_store_and_updates_the_dialog(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MARKET_MONITOR_GUI_DATA_DIR", str(tmp_path))
+
+    from market_monitor_gui.app import AppContext
+    from market_monitor_gui.ui.app import Shell
+
+    context = AppContext.create()
+    try:
+        context.secrets.save("dummy")
+        shell = Shell(context)
+        shell._open_connection_dialog()
+        dialog = shell._connection_dialog
+        assert dialog is not None
+        confirm = _ConfirmStub()
+        shell._forget_secret(dialog, confirm)  # type: ignore[arg-type]
+        assert confirm.closed is True
+        assert context.secrets.load() is None
+        assert dialog._secret_saved is False
+        shell.destroy()
+    finally:
+        context.close()

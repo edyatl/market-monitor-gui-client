@@ -81,3 +81,31 @@ def test_about_dialog_opens_without_the_logo(
     finally:
         dialog.close()
         root.destroy()
+
+
+@pytest.mark.e2e
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_about_dialog_opens_the_repository_link() -> None:
+    import customtkinter as ctk
+
+    from market_monitor_gui.texts import ru
+    from market_monitor_gui.ui import theme
+    from market_monitor_gui.ui.dialogs.about import AboutDialog
+
+    opened: list[str] = []
+    root = ctk.CTk()
+    dialog = AboutDialog(root, fonts=theme.build_fonts(), on_open_url=opened.append)
+    root.update()
+    try:
+        buttons = [
+            widget
+            for widget in _walk(dialog)
+            if isinstance(widget, ctk.CTkButton)
+            and str(widget.cget("text")) == ru.ABOUT_REPOSITORY_LINK
+        ]
+        assert len(buttons) == 1
+        buttons[0].invoke()
+        assert opened == [ru.ABOUT_REPOSITORY_URL]
+    finally:
+        dialog.close()
+        root.destroy()

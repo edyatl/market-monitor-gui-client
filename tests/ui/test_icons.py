@@ -118,3 +118,89 @@ def test_logo_is_quarter_scale() -> None:
         assert (photo.width(), photo.height()) == (icons.LOGO_SIZE, icons.LOGO_SIZE)
     finally:
         root.destroy()
+
+
+class _AfterRecorder:
+    """Minimal stand-in for a Tk window: records ``after`` and reports existence."""
+
+    def __init__(self, *, exists: bool = True) -> None:
+        self.entries: list[tuple[int, object]] = []
+        self._exists = exists
+
+    def after(self, ms: int, callback: object) -> str:
+        self.entries.append((ms, callback))
+        return "after#1"
+
+    def winfo_exists(self) -> bool:
+        return self._exists
+
+
+def test_delayed_refresh_waits_for_the_ctk_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from market_monitor_gui.ui import icons
+
+    refreshed: list[object] = []
+    monkeypatch.setattr(icons, "_refresh_icon", refreshed.append)
+    window = _AfterRecorder()
+
+    icons._schedule_icon_refresh(window)  # type: ignore[arg-type]
+
+    assert len(window.entries) == 1
+    delay, callback = window.entries[0]
+    assert delay == icons._CTK_ICON_OVERRIDE_DELAY_MS
+    assert callable(callback)
+    callback()
+    assert refreshed == [window]
+
+
+def test_delayed_refresh_is_skipped_for_a_destroyed_window(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from market_monitor_gui.ui import icons
+
+    applied: list[object] = []
+
+    def _record(window: object) -> bool:
+        applied.append(window)
+        return True
+
+    monkeypatch.setattr(icons, "_apply_icon", _record)
+    icons._refresh_icon(_AfterRecorder(exists=False))  # type: ignore[arg-type]
+    assert applied == []
+
+
+def test_delayed_refresh_swallows_a_tcl_error() -> None:
+    from market_monitor_gui.ui import icons
+
+    class _Broken(_AfterRecorder):
+        def after(self, ms: int, callback: object) -> str:
+            raise tk.TclError("window destroyed")
+
+    icons._schedule_icon_refresh(_Broken())  # type: ignore[arg-type]
+
+
+@pytest.mark.e2e
+@pytest.mark.skipif(not _has_display(), reason="no display available")
+def test_win32_toplevel_schedules_the_delayed_refresh(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from market_monitor_gui.ui import icons
+
+    scheduled: list[object] = []
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(icons, "_apply_icon", lambda _window: True)
+    monkeypatch.setattr(icons, "_schedule_icon_refresh", scheduled.append)
+
+    root = tk.Tk()
+    toplevel = tk.Toplevel(root)
+    try:
+        root.withdraw()
+        assert icons.apply_window_icon(toplevel) is True
+        assert scheduled == [toplevel]
+        scheduled.clear()
+        assert icons.apply_window_icon(root) is True
+        assert scheduled == []
+    finally:
+        toplevel.destroy()
+        root.destroy()

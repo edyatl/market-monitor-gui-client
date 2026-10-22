@@ -259,10 +259,10 @@ def test_ensure_session_logs_in_from_resolver(make_harness: Callable[..., Harnes
     assert harness.server.login_calls == 1
 
 
-def test_logout_clears_session(make_harness: Callable[..., Harness]) -> None:
+def test_disconnect_clears_session(make_harness: Callable[..., Harness]) -> None:
     harness = make_harness()
     harness.manager.login()
-    harness.manager.logout()
+    harness.manager.disconnect()
     assert harness.manager.state is SessionState.SIGNED_OUT
     assert harness.api.has_session_cookies() is False
     assert harness.manager.session_expires_in is None

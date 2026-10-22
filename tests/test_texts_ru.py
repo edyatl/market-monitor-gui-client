@@ -79,7 +79,7 @@ def test_menu_and_sidebar_labels_exist() -> None:
         "SIDEBAR_HELP",
         "MENU_CONNECTION_SETTINGS",
         "MENU_CHECK_CONNECTION",
-        "MENU_LOGOUT",
+        "MENU_DISCONNECT",
         "MENU_ABOUT",
     }
     assert required <= set(ru.TEXT_KEYS)

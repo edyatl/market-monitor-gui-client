@@ -22,6 +22,7 @@ pytestmark = pytest.mark.unit
         (ConnectionState.CONNECTED, ru.STATUS_CONNECTED),
         (ConnectionState.RETRYING, ru.STATUS_RETRYING),
         (ConnectionState.OFFLINE, ru.STATUS_OFFLINE),
+        (ConnectionState.DISCONNECTED, ru.STATUS_DISCONNECTED),
         (ConnectionState.SESSION_EXPIRED, ru.STATUS_SESSION_EXPIRED),
     ],
 )
