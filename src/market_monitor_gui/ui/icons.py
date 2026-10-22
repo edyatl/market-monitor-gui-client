@@ -12,6 +12,7 @@ loads PNG files natively.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sys
 import tkinter as tk
@@ -24,6 +25,11 @@ APP_ICON_NAME = "app.ico"
 APP_ICON_PNG_NAME = "app-256.png"
 LOGO_SIZE = 64
 _LOGO_SUBSAMPLE = 4
+
+#: CustomTkinter overwrites a ``CTkToplevel`` icon with its own default about 200 ms
+#: after creation (see ``customtkinter/windows/ctk_toplevel.py``). Re-applying ours
+#: once after that is the only reliable fix on Windows.
+_CTK_ICON_OVERRIDE_DELAY_MS = 350
 
 _missing_assets_logged: set[Path] = set()
 # Tk keeps only the image name; hold the Python object while the window exists.
@@ -86,7 +92,18 @@ def apply_window_icon(window: tk.Tk | tk.Toplevel) -> bool:
     Windows uses the native ``.ico`` via ``wm iconbitmap`` (which also stops
     CustomTkinter from substituting its own default icon); other platforms use the PNG
     via ``wm iconphoto``. Neither path raises.
+
+    Dialogs need one extra step on Windows: ``CTkToplevel`` schedules its own default
+    icon ~200 ms after creation, so a toplevel icon is re-applied after that delay.
     """
+    if not _apply_icon(window):
+        return False
+    if sys.platform == "win32" and isinstance(window, tk.Toplevel):
+        _schedule_icon_refresh(window)
+    return True
+
+
+def _apply_icon(window: tk.Tk | tk.Toplevel) -> bool:
     if sys.platform == "win32":
         path = app_icon_path()
         if not path.is_file():
@@ -110,3 +127,18 @@ def apply_window_icon(window: tk.Tk | tk.Toplevel) -> bool:
     # Tk keeps only the image name; hold the Python object for the window's lifetime.
     _window_photos[window] = photo
     return True
+
+
+def _schedule_icon_refresh(window: tk.Toplevel) -> None:
+    """Re-apply the icon after CustomTkinter's own icon timer fires."""
+    with contextlib.suppress(tk.TclError):
+        window.after(_CTK_ICON_OVERRIDE_DELAY_MS, lambda: _refresh_icon(window))
+
+
+def _refresh_icon(window: tk.Toplevel) -> None:
+    try:
+        if not window.winfo_exists():
+            return
+    except tk.TclError:
+        return
+    _apply_icon(window)

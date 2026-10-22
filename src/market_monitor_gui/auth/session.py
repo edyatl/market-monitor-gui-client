@@ -1,4 +1,4 @@
-"""Session lifecycle: login, coordinated one-shot re-login on 401, logout.
+"""Session lifecycle: login, coordinated one-shot re-login on 401, disconnect.
 
 Rules enforced here (see AGENTS.md):
 
@@ -8,6 +8,8 @@ Rules enforced here (see AGENTS.md):
 - a **write** is never retried or replayed after ``401``: the caller refreshes and
   shows server state;
 - re-login is single-flight: concurrent ``401`` readers share one login.
+
+Disconnecting (``disconnect()``) ends the session only; a stored secret is kept.
 
 Thread-safe and free of any UI imports; the status bar observes state via the
 ``on_state_change`` callback.
@@ -120,8 +122,12 @@ class SessionManager:
         """Run a mutating call. Never re-logged in or replayed automatically."""
         return self._call(fn, allow_relogin=False)
 
-    def logout(self) -> None:
-        """Clear the session cookies and reset state."""
+    def disconnect(self) -> None:
+        """End the session (clear the cookies and reset state) but keep any stored secret.
+
+        The operator-facing disconnect action maps here: the session cookie is dropped,
+        while the encrypted secret on disk is untouched so the next sign-in needs no typing.
+        """
         self._api.clear_session_cookies()
         self._expires_in = None
         with self._lock:

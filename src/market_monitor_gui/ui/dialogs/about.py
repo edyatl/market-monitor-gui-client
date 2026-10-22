@@ -1,8 +1,9 @@
-"""About dialog: application name, version, and logo."""
+"""About dialog: application name, version, logo, and the repository link."""
 
 from __future__ import annotations
 
 import warnings
+from collections.abc import Callable
 
 import customtkinter as ctk
 
@@ -13,9 +14,15 @@ from market_monitor_gui.ui.dialogs.base import BaseDialog
 
 
 class AboutDialog(BaseDialog):
-    """Read-only name/version dialog."""
+    """Read-only name/version dialog with an external repository link."""
 
-    def __init__(self, master: ctk.CTk, *, fonts: theme.Fonts) -> None:
+    def __init__(
+        self,
+        master: ctk.CTk,
+        *,
+        fonts: theme.Fonts,
+        on_open_url: Callable[[str], None] | None = None,
+    ) -> None:
         super().__init__(master, title=ru.ABOUT_TITLE, fonts=fonts)
 
         title_pady = (theme.CONTENT_GUTTER, theme.FIELD_GAP)
@@ -39,6 +46,16 @@ class AboutDialog(BaseDialog):
         ctk.CTkLabel(self, text=ru.fmt_version(__version__), font=self.fonts.body, anchor="w").pack(
             fill="x", padx=theme.CONTENT_GUTTER, pady=(0, theme.CONTENT_GUTTER)
         )
+
+        if on_open_url is not None:
+            ctk.CTkButton(
+                self,
+                text=ru.ABOUT_REPOSITORY_LINK,
+                command=lambda: on_open_url(ru.ABOUT_REPOSITORY_URL),
+                font=self.fonts.link,
+                anchor="w",
+                **theme.link_button(),
+            ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(0, theme.CONTENT_GUTTER))
 
         ctk.CTkButton(
             self,

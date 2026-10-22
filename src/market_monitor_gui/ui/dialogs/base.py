@@ -15,7 +15,7 @@ class BaseDialog(ctk.CTkToplevel):
 
     def __init__(
         self,
-        master: ctk.CTk,
+        master: ctk.CTk | ctk.CTkToplevel,
         *,
         title: str,
         fonts: theme.Fonts,
@@ -44,13 +44,22 @@ class BaseDialog(ctk.CTkToplevel):
         self.focus_force()
 
     def close(self) -> None:
-        """Destroy the dialog once, releasing the grab."""
+        """Destroy the dialog once, releasing the grab.
+
+        When this dialog was opened on top of another toplevel (e.g. the forget-secret
+        confirmation over connection settings), the parent's modal grab is restored.
+        """
         if self._closed:
             return
         self._closed = True
+        master = self.master
         with contextlib.suppress(tk.TclError):
             self.grab_release()
         self.destroy()
+        if isinstance(master, tk.Toplevel):
+            with contextlib.suppress(tk.TclError):
+                if master.winfo_exists():
+                    master.grab_set()
 
     def _on_escape(self, _event: object) -> None:
         self.close()

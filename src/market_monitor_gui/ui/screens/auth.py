@@ -30,9 +30,14 @@ class AuthScreen(ScreenFrame):
             justify="left",
             anchor="w",
         ).pack(fill="x", pady=(0, theme.SECTION_GAP))
-        ctk.CTkButton(
+        self._login_button = ctk.CTkButton(
             self.body,
             text=ru.ACTION_LOGIN,
             command=on_login,
             **theme.primary_button(),
-        ).pack(anchor="w")
+        )
+        self._login_button.pack(anchor="w")
+
+    def set_login_label(self, label: str) -> None:
+        """Use the «sign in again» wording when only the session ended."""
+        self._login_button.configure(text=label)

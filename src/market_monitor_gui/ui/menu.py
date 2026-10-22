@@ -31,7 +31,7 @@ class MenuAction(StrEnum):
 
     CONNECTION = "connection"
     CHECK = "check"
-    LOGOUT = "logout"
+    DISCONNECT = "disconnect"
     ABOUT = "about"
 
 
@@ -39,7 +39,7 @@ class MenuAction(StrEnum):
 _MENU_ITEMS: Final[tuple[tuple[MenuAction, str], ...]] = (
     (MenuAction.CONNECTION, ru.MENU_CONNECTION_SETTINGS),
     (MenuAction.CHECK, ru.MENU_CHECK_CONNECTION),
-    (MenuAction.LOGOUT, ru.MENU_LOGOUT),
+    (MenuAction.DISCONNECT, ru.MENU_DISCONNECT),
     (MenuAction.ABOUT, ru.MENU_ABOUT),
 )
 

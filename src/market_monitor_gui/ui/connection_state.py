@@ -20,6 +20,7 @@ class ConnectionState(StrEnum):
     CONNECTED = "connected"
     RETRYING = "retrying"
     OFFLINE = "offline"
+    DISCONNECTED = "disconnected"
     SESSION_EXPIRED = "session_expired"
 
 
@@ -28,6 +29,7 @@ STATE_TEXT: Mapping[ConnectionState, str] = {
     ConnectionState.CONNECTED: ru.STATUS_CONNECTED,
     ConnectionState.RETRYING: ru.STATUS_RETRYING,
     ConnectionState.OFFLINE: ru.STATUS_OFFLINE,
+    ConnectionState.DISCONNECTED: ru.STATUS_DISCONNECTED,
     ConnectionState.SESSION_EXPIRED: ru.STATUS_SESSION_EXPIRED,
 }
 

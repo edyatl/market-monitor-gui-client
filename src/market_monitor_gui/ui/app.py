@@ -19,7 +19,7 @@ from market_monitor_gui.api.dto import FilterResponse, GroupResponse, LiveRespon
 from market_monitor_gui.api.errors import ApiError, ErrorKind
 from market_monitor_gui.app import AppContext
 from market_monitor_gui.auth.session import SessionManager, SessionState
-from market_monitor_gui.services.connection import save_connection
+from market_monitor_gui.services.connection import forget_secret, save_connection, store_secret
 from market_monitor_gui.services.errors import text_key_for_exception
 from market_monitor_gui.services.filters import (
     FiltersData,
@@ -47,7 +47,13 @@ from market_monitor_gui.ui.dialogs.connection import ConnectionDialog
 from market_monitor_gui.ui.dialogs.filter_editor import FilterEditorDialog
 from market_monitor_gui.ui.dialogs.group_editor import GroupEditorDialog
 from market_monitor_gui.ui.dialogs.login import LoginDialog
-from market_monitor_gui.ui.forms import FilterFormValues, GroupFormValues, login_error_text
+from market_monitor_gui.ui.forms import (
+    ConnectionFormValues,
+    FilterFormValues,
+    GroupFormValues,
+    LoginFormValues,
+    login_error_text,
+)
 from market_monitor_gui.ui.links import open_external_url
 from market_monitor_gui.ui.menu import AppMenu, MenuAction
 from market_monitor_gui.ui.navigation import SCREEN_ORDER, Screen, screen_from_value
@@ -122,7 +128,7 @@ class Shell(ctk.CTk):
 
     def _build_screens(self) -> None:
         self._auth_screen = AuthScreen(
-            self._content, fonts=self._fonts, on_login=self._open_login_dialog
+            self._content, fonts=self._fonts, on_login=self._request_login
         )
         self._overview = OverviewScreen(
             self._content,
@@ -138,7 +144,7 @@ class Shell(ctk.CTk):
             on_edit=self._open_group_editor_edit,
             on_toggle=self._toggle_group,
             on_delete=self._confirm_delete_group,
-            on_open_url=self._open_group_url,
+            on_open_url=self._open_external_url,
         )
         self._settings_screen = SettingsScreen(
             self._content,
@@ -181,8 +187,9 @@ class Shell(ctk.CTk):
         self._show_auth()
         secret = self._ctx.resolver.resolve()
         if secret:
-            self._begin_login(secret, auto=True, dialog=None)
+            self._begin_login(secret, dialog=None)
         else:
+            self._set_status(ConnectionState.OFFLINE)
             self._open_login_dialog()
 
     def _start_polling(self) -> None:
@@ -230,6 +237,9 @@ class Shell(ctk.CTk):
     def _show_auth(self) -> None:
         self._current_screen = None
         self._sidebar.clear_active()
+        self._auth_screen.set_login_label(
+            ru.ACTION_LOGIN_AGAIN if self._ctx.resolver.has_secret() else ru.ACTION_LOGIN
+        )
         self._swap_frame(self._auth_screen)
 
     def _swap_frame(self, frame: ScreenFrame) -> None:
@@ -262,49 +272,87 @@ class Shell(ctk.CTk):
             self._open_login_dialog_once()
         else:
             self._sidebar.set_enabled(False)
-            self._set_status(ConnectionState.OFFLINE)
             self._show_auth()
 
-    def _begin_login(self, secret: str, *, auto: bool, dialog: LoginDialog | None) -> None:
+    def _begin_login(
+        self,
+        secret: str,
+        *,
+        dialog: LoginDialog | None,
+        remember: bool = False,
+    ) -> None:
         self._set_status(ConnectionState.CONNECTING)
         if dialog is not None:
             dialog.set_busy(True)
         handle = self._ctx.runner.submit(
             lambda: self._session.login(secret),
-            on_ok=self._login_succeeded,
-            on_err=lambda exc: self._login_failed(exc, auto=auto, dialog=dialog),
+            on_ok=lambda state: self._login_succeeded(state, secret=secret, remember=remember),
+            on_err=lambda exc: self._login_failed(exc, dialog=dialog),
             key="login",
         )
         if handle is None and dialog is not None:
             dialog.set_busy(False)
 
-    def _login_succeeded(self, _state: SessionState) -> None:
+    def _login_succeeded(self, _state: SessionState, *, secret: str, remember: bool) -> None:
+        if remember:
+            outcome = store_secret(self._ctx.secrets, secret)
+            if not outcome.ok:
+                self._flash_message(
+                    ru.text_for(outcome.error_key or "ERR_UNEXPECTED"), MessageKind.ERROR
+                )
         self._close_login_dialog()
 
-    def _login_failed(self, exc: BaseException, *, auto: bool, dialog: LoginDialog | None) -> None:
-        self._set_status(state_for_error(exc) or ConnectionState.OFFLINE)
+    def _login_failed(self, exc: BaseException, *, dialog: LoginDialog | None) -> None:
+        state = state_for_error(exc)
+        if state is None:
+            # Network-level failure: keep the current screen and let the operator retry.
+            self._set_status(ConnectionState.OFFLINE)
+            self._flash_message(ru.text_for(login_error_text(exc)), MessageKind.ERROR)
+            if dialog is not None:
+                dialog.set_busy(False)
+            return
+        self._set_status(state)
         target = dialog if dialog is not None else self._login_dialog
         if target is None or not self._dialog_alive(target):
-            target = self._spawn_login_dialog()
+            target = self._spawn_login_dialog(secret_available=False)
         target.show_error(login_error_text(exc))
 
     # -- login dialog ---------------------------------------------------------
 
-    def _spawn_login_dialog(self) -> LoginDialog:
+    def _spawn_login_dialog(self, *, secret_available: bool) -> LoginDialog:
         dialog = LoginDialog(
             self,
             fonts=self._fonts,
-            on_submit=lambda secret: self._begin_login(secret, auto=False, dialog=dialog),
+            secret_available=secret_available,
+            on_submit=lambda values: self._submit_login(dialog, values),
             on_open_connection=self._open_connection_dialog,
         )
         self._login_dialog = dialog
         dialog.show_modal()
         return dialog
 
+    def _submit_login(self, dialog: LoginDialog, values: LoginFormValues) -> None:
+        if values.secret is None:
+            secret = self._ctx.resolver.resolve()
+            if not secret:
+                dialog.show_error("ERR_NO_SECRET")
+                return
+            self._begin_login(secret, dialog=dialog)
+            return
+        self._begin_login(values.secret, dialog=dialog, remember=values.remember)
+
     def _open_login_dialog(self) -> None:
         if self._dialog_alive(self._login_dialog):
             return
-        self._spawn_login_dialog()
+        self._spawn_login_dialog(secret_available=self._ctx.resolver.has_secret())
+
+    def _request_login(self) -> None:
+        """Sign in from the auth screen without re-typing a stored secret."""
+        secret = self._ctx.resolver.resolve()
+        if secret:
+            self._begin_login(secret, dialog=None)
+        else:
+            self._open_login_dialog()
 
     def _open_login_dialog_once(self) -> None:
         if self._relogin_prompt_shown:
@@ -330,37 +378,73 @@ class Shell(ctk.CTk):
             self,
             fonts=self._fonts,
             initial_origin=self._ctx.api.origin,
-            on_save=lambda origin, secret, save: self._save_connection(
-                dialog, origin, secret, save
-            ),
+            secret_saved=self._ctx.resolver.has_stored_secret(),
+            env_secret=self._ctx.resolver.has_env_secret(),
+            on_save=lambda values: self._save_connection(dialog, values),
             on_check=lambda origin: self._check_connection(origin, dialog=dialog),
+            on_forget=lambda: self._confirm_forget_secret(dialog),
         )
         self._connection_dialog = dialog
         dialog.show_modal()
 
-    def _save_connection(
-        self, dialog: ConnectionDialog, origin: str, secret: str | None, save_secret: bool
-    ) -> None:
-        changed = origin != self._ctx.api.origin
+    def _save_connection(self, dialog: ConnectionDialog, values: ConnectionFormValues) -> None:
+        changed = values.origin != self._ctx.api.origin
         outcome = save_connection(
             self._ctx.config,
             self._ctx.secrets,
-            origin=origin,
-            secret=secret,
-            save_secret=save_secret,
+            origin=values.origin,
+            secret=values.secret,
+            save_secret=values.remember,
+            clear_secret=not values.remember,
         )
         if not outcome.ok:
             dialog.show_error(outcome.error_key or "ERR_UNEXPECTED")
             return
+        dialog.set_secret_saved(self._ctx.resolver.has_stored_secret())
         dialog.close()
         if changed:
-            self._rebuild_api(origin)
-        login_secret = secret or self._ctx.resolver.resolve()
+            self._rebuild_api(values.origin)
+            self._flash_message(ru.CONN_ORIGIN_CHANGED_RELOGIN, MessageKind.SUCCESS)
+        login_secret = values.secret or self._ctx.resolver.resolve()
         if login_secret:
-            self._begin_login(login_secret, auto=True, dialog=None)
+            self._begin_login(login_secret, dialog=None)
+        elif self._session.state is SessionState.SIGNED_IN:
+            self._flash_message(ru.CONN_SAVED, MessageKind.SUCCESS)
         else:
             self._show_auth()
             self._open_login_dialog()
+
+    def _confirm_forget_secret(self, connection_dialog: ConnectionDialog) -> None:
+        confirm = ConfirmDeleteDialog(
+            connection_dialog,
+            fonts=self._fonts,
+            title=ru.CONFIRM_FORGET_SECRET_TITLE,
+            question=ru.fmt_confirm_forget_secret(),
+            warning=ru.CONFIRM_FORGET_SECRET_WARNING,
+            confirm_label=ru.ACTION_FORGET_SECRET,
+            on_confirm=lambda: self._forget_secret(connection_dialog, confirm),
+        )
+        self._confirm_delete = confirm
+        confirm.show_modal()
+
+    def _forget_secret(self, connection_dialog: ConnectionDialog, confirm: BaseDialog) -> None:
+        outcome = forget_secret(self._ctx.secrets)
+        confirm.close()
+        if not outcome.ok:
+            connection_dialog.show_error(outcome.error_key or "ERR_UNEXPECTED")
+            return
+        connection_dialog.set_secret_saved(False)
+        self._flash_message(ru.MSG_SECRET_FORGOTTEN, MessageKind.SUCCESS)
+
+    def _disconnect(self) -> None:
+        self._session.disconnect()
+        self._sidebar.set_enabled(False)
+        self._set_status(ConnectionState.DISCONNECTED)
+        self._show_auth()
+        if self._ctx.resolver.has_secret():
+            self._flash_message(ru.MSG_DISCONNECTED, MessageKind.SUCCESS)
+        else:
+            self._flash_message(ru.MSG_DISCONNECTED_NO_SECRET, MessageKind.SUCCESS)
 
     def _rebuild_api(self, origin: str) -> None:
         previous = self._ctx.api
@@ -622,13 +706,13 @@ class Shell(ctk.CTk):
         self._flash_message(ru.GROUP_DISABLED, MessageKind.SUCCESS)
         self._refresh_groups()
 
-    def _open_group_url(self, url: str) -> None:
-        """Open a group URL in the browser without blocking the UI thread."""
+    def _open_external_url(self, url: str) -> None:
+        """Open any external URL (group or repository) without blocking the UI thread."""
         self._ctx.runner.submit(
             lambda: open_external_url(url),
             on_ok=self._url_opened,
             on_err=lambda _exc: self._flash_message(ru.ERR_OPEN_LINK, MessageKind.ERROR),
-            key="open-group-url",
+            key="open-external-url",
         )
 
     def _url_opened(self, opened: bool) -> None:
@@ -793,10 +877,10 @@ class Shell(ctk.CTk):
             self._open_connection_dialog()
         elif action is MenuAction.CHECK:
             self._check_connection()
-        elif action is MenuAction.LOGOUT:
-            self._session.logout()
+        elif action is MenuAction.DISCONNECT:
+            self._disconnect()
         elif action is MenuAction.ABOUT:
-            AboutDialog(self, fonts=self._fonts).show_modal()
+            AboutDialog(self, fonts=self._fonts, on_open_url=self._open_external_url).show_modal()
 
     def _set_status(self, state: ConnectionState) -> None:
         self._status = state

@@ -37,6 +37,7 @@ def help_sections() -> tuple[HelpSection, ...]:
     return (
         HelpSection(ru.HELP_INTRO_HEADING, ru.HELP_INTRO_BODY),
         HelpSection(ru.HELP_LOGIN_HEADING, ru.HELP_LOGIN_BODY),
+        HelpSection(ru.HELP_SECRET_HEADING, ru.HELP_SECRET_BODY),
         HelpSection(ru.HELP_OVERVIEW_HEADING, ru.HELP_OVERVIEW_BODY),
         HelpSection(ru.HELP_GROUPS_HEADING, ru.HELP_GROUPS_BODY),
         HelpSection(ru.HELP_THRESHOLD_HEADING, ru.HELP_THRESHOLD_BODY),

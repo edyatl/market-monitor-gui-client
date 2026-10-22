@@ -31,6 +31,27 @@ class OriginInput:
     warning: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class LoginFormValues:
+    """Login dialog values; ``secret`` is ``None`` when the stored secret is used."""
+
+    secret: str | None
+    remember: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionFormValues:
+    """Connection dialog values ready for the save use-case.
+
+    ``secret`` is set only when the operator typed a new one; ``remember`` mirrors the
+    "keep the secret on this computer" checkbox (off = delete the stored secret).
+    """
+
+    origin: str
+    secret: str | None
+    remember: bool
+
+
 #: Group name max length, mirroring the API contract (server remains authoritative).
 GROUP_NAME_MAX_LEN: Final[int] = 200
 

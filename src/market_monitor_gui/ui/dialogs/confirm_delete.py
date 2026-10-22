@@ -24,21 +24,22 @@ class ConfirmDeleteDialog(BaseDialog):
 
     def __init__(
         self,
-        master: ctk.CTk,
+        master: ctk.CTk | ctk.CTkToplevel,
         *,
         fonts: theme.Fonts,
         question: str,
         confirm_label: str,
         on_confirm: Callable[[], None],
         title: str = ru.CONFIRM_DELETE_TITLE,
+        warning: str = ru.CONFIRM_DELETE_WARNING,
     ) -> None:
         super().__init__(master, title=title, fonts=fonts)
         self._on_confirm = on_confirm
         self._alternative: ctk.CTkButton | None = None
         self._conflict = False
-        self._build(question, confirm_label)
+        self._build(question, confirm_label, warning)
 
-    def _build(self, question: str, confirm_label: str) -> None:
+    def _build(self, question: str, confirm_label: str, warning: str) -> None:
         ctk.CTkLabel(
             self,
             text=question,
@@ -49,7 +50,7 @@ class ConfirmDeleteDialog(BaseDialog):
         ).pack(fill="x", padx=theme.CONTENT_GUTTER, pady=(theme.CONTENT_GUTTER, theme.FIELD_GAP))
         ctk.CTkLabel(
             self,
-            text=ru.CONFIRM_DELETE_WARNING,
+            text=warning,
             font=self.fonts.small,
             text_color=theme.colour("muted"),
             wraplength=420,

@@ -27,6 +27,7 @@ _STATE_COLOUR: Mapping[ConnectionState, str] = {
     ConnectionState.CONNECTED: "ok",
     ConnectionState.RETRYING: "warn",
     ConnectionState.OFFLINE: "error",
+    ConnectionState.DISCONNECTED: "muted",
     ConnectionState.SESSION_EXPIRED: "warn",
 }
 

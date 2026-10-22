@@ -42,7 +42,7 @@ SIDEBAR_ICON_HELP: Final[str] = "?"
 
 MENU_CONNECTION_SETTINGS: Final[str] = "Настройки подключения"
 MENU_CHECK_CONNECTION: Final[str] = "Проверить соединение"
-MENU_LOGOUT: Final[str] = "Завершить сеанс"
+MENU_DISCONNECT: Final[str] = "Отключить"
 MENU_ABOUT: Final[str] = "О программе"
 MENU_BUTTON: Final[str] = "Меню"
 MENU_ICON: Final[str] = "☰"
@@ -62,6 +62,8 @@ ACTION_CLOSE: Final[str] = "Закрыть"
 ACTION_ENABLE: Final[str] = "Включить"
 ACTION_DISABLE: Final[str] = "Выключить"
 ACTION_DISABLE_GROUP: Final[str] = "Отключить группу"
+ACTION_FORGET_SECRET: Final[str] = "Забыть секрет"
+ACTION_USE_OTHER_SECRET: Final[str] = "Ввести другой секрет"
 
 # --- Connection state (always text + glyph, never colour alone) --------------
 
@@ -69,6 +71,7 @@ STATUS_CONNECTING: Final[str] = "○ Подключение…"
 STATUS_CONNECTED: Final[str] = "● Подключено"
 STATUS_RETRYING: Final[str] = "○ Повторная попытка…"
 STATUS_OFFLINE: Final[str] = "○ Нет связи"
+STATUS_DISCONNECTED: Final[str] = "○ Отключено"
 STATUS_SESSION_EXPIRED: Final[str] = "○ Сессия истекла"
 
 # --- Login dialog ------------------------------------------------------------
@@ -76,9 +79,13 @@ STATUS_SESSION_EXPIRED: Final[str] = "○ Сессия истекла"
 LOGIN_TITLE: Final[str] = "Вход"
 LOGIN_SECRET_LABEL: Final[str] = "Секрет приложения"
 LOGIN_HELP: Final[str] = (
-    "Введите общий секрет приложения. Он используется только для входа "
-    "и не сохраняется в открытом виде."
+    "Секрет приложения используется только для входа. Его можно хранить на этом "
+    "компьютере в зашифрованном виде — тогда программа входит без повторного ввода."
 )
+LOGIN_STORED_SECRET: Final[str] = (
+    "Секрет сохранён на этом компьютере — можно войти без ввода секрета."
+)
+LOGIN_REMEMBER: Final[str] = "Хранить секрет на этом компьютере"
 LOGIN_IN_PROGRESS: Final[str] = "Выполняется вход…"
 LOGIN_SUCCESS: Final[str] = "Вход выполнен"
 LOGIN_FAILED: Final[str] = "Не удалось войти. Проверьте секрет и повторите."
@@ -131,19 +138,41 @@ CONN_CUSTOM_ORIGIN_WARNING: Final[str] = (
     "прежде чем сохранять секрет."
 )
 CONN_SECRET_LABEL: Final[str] = "Секрет приложения"
-CONN_SAVE_SECRET: Final[str] = "Сохранить секрет на этом компьютере"
+CONN_SECRET_PLACEHOLDER: Final[str] = "••••••••"
+CONN_SAVE_SECRET: Final[str] = "Хранить секрет на этом компьютере"
+CONN_SECRET_SAVED: Final[str] = "Секрет сохранён на этом компьютере."
+CONN_SECRET_NOT_SAVED: Final[str] = "Секрет не сохранён на этом компьютере."
+CONN_SECRET_HELP: Final[str] = (
+    "Введите новый секрет, чтобы заменить сохранённый. Если снять галочку и сохранить, "
+    "сохранённый секрет будет удалён."
+)
+CONN_SECRET_ENV_NOTE: Final[str] = (
+    "Секрет задан в переменной окружения APP_SECRET и имеет приоритет над сохранённым."
+)
 CONN_SAVED: Final[str] = "Настройки подключения сохранены."
 CONN_ORIGIN_CHANGED_RELOGIN: Final[str] = "Адрес изменён. Войдите заново."
+CONFIRM_FORGET_SECRET_TITLE: Final[str] = "Забыть секрет"
+CONFIRM_FORGET_SECRET_WARNING: Final[str] = "Для следующего входа секрет придётся ввести заново."
 
 # --- About dialog ------------------------------------------------------------
 
 ABOUT_TITLE: Final[str] = "О программе"
 ABOUT_VERSION_LABEL: Final[str] = "Версия"
+ABOUT_REPOSITORY_LINK: Final[str] = "Открыть репозиторий на GitHub"
+ABOUT_REPOSITORY_URL: Final[str] = "https://github.com/edyatl/market-monitor-gui-client"
 
 # --- Status bar messages -----------------------------------------------------
 
 STATUS_LAST_REFRESH: Final[str] = "Обновлено: {when}"
 STATUS_NEVER_REFRESHED: Final[str] = "Данные ещё не загружались"
+
+MSG_SECRET_FORGOTTEN: Final[str] = "Сохранённый секрет удалён."
+MSG_DISCONNECTED: Final[str] = (
+    "Отключено. Секрет сохранён — при следующем входе вводить его не нужно."
+)
+MSG_DISCONNECTED_NO_SECRET: Final[str] = (
+    "Отключено. Секрет не сохранён — при следующем входе его нужно ввести."
+)
 
 # --- Feedback glyphs (decorative; the words stay authoritative) --------------
 # Kept here like the sidebar icons: operator-visible, so not hardcoded in widgets.
@@ -258,9 +287,18 @@ HELP_INTRO_BODY: Final[str] = (
 HELP_LOGIN_HEADING: Final[str] = "Вход и секрет приложения"
 HELP_LOGIN_BODY: Final[str] = (
     "Для входа нужен общий секрет приложения — он используется только для входа. Если "
-    "выбрано «Сохранить секрет на этом компьютере», секрет хранится в зашифрованном виде, "
-    "а не открытым текстом. После входа программа работает по сессии: пока сессия жива, "
-    "вводить секрет повторно не нужно."
+    "выбрано «Хранить секрет на этом компьютере», секрет хранится в зашифрованном виде, "
+    "а не открытым текстом, и программа входит без повторного ввода. После входа программа "
+    "работает по сессии: пока сессия жива, секрет не нужен."
+)
+HELP_SECRET_HEADING: Final[str] = "Секрет и подключение"
+HELP_SECRET_BODY: Final[str] = (
+    "Адрес API и секрет задаются в меню «Настройки подключения». Программа показывает только "
+    "признак «секрет сохранён», сам секрет не отображается. «Отключить» в меню завершает "
+    "сеанс, но сохранённый секрет остаётся. «Забыть секрет» удаляет сохранённый секрет; "
+    "текущий сеанс при этом не завершается, а для следующего входа секрет нужно ввести заново. "
+    "Секрет из переменной окружения APP_SECRET (для разработки) имеет приоритет над "
+    "сохранённым и не удаляется из программы."
 )
 HELP_OVERVIEW_HEADING: Final[str] = "Обзор"
 HELP_OVERVIEW_BODY: Final[str] = (
@@ -299,7 +337,7 @@ HELP_OFFLINE_BODY: Final[str] = (
 HELP_KEYS_HEADING: Final[str] = "Клавиши"
 HELP_KEYS_ITEM: Final[str] = "Ctrl+{index} — {label}"
 HELP_KEYS_REFRESH: Final[str] = "F5 — обновить текущий раздел"
-HELP_KEYS_ESCAPE: Final[str] = "Esc — закрыть окно"
+HELP_KEYS_ESCAPE: Final[str] = "Esc — закрыть открытое окно"
 HELP_SUPPORT_HEADING: Final[str] = "Где искать ответы"
 HELP_SUPPORT_BODY: Final[str] = (
     "Уведомления приходят из Telegram-бота — там же видны группы, исключения и настройки. "
@@ -456,6 +494,11 @@ def fmt_filter_normalized(phrase: str) -> str:
 def fmt_confirm_delete_filter(phrase: str) -> str:
     """Format the destructive confirmation question naming the exclusion phrase."""
     return f"Удалить исключение «{phrase}»?"
+
+
+def fmt_confirm_forget_secret() -> str:
+    """Format the confirmation question for deleting the stored secret."""
+    return "Удалить сохранённый секрет на этом компьютере?"
 
 
 def fmt_menu_button() -> str:

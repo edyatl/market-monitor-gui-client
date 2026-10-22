@@ -30,3 +30,16 @@ class SecretResolver:
             if value:
                 return value
         return self._store.load()
+
+    def has_stored_secret(self) -> bool:
+        """Return whether an encrypted secret is stored on this computer."""
+        return self._store.is_saved()
+
+    def has_env_secret(self) -> bool:
+        """Return whether ``APP_SECRET``/``API_APP_KEY`` provides a secret."""
+        secret = self._settings.app_secret
+        return secret is not None and bool(secret.get_secret_value())
+
+    def has_secret(self) -> bool:
+        """Return whether an automatic login could use a secret right now."""
+        return self.has_env_secret() or self.has_stored_secret()
