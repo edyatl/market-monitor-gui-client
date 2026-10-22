@@ -145,6 +145,14 @@ def test_settings_hint_states_the_enforced_range() -> None:
     assert format_threshold(THRESHOLD_MAX) in ru.SETTINGS_THRESHOLD_HINT
 
 
+def test_threshold_copy_mentions_the_usual_default_and_server_value() -> None:
+    assert "5 %" in ru.SETTINGS_THRESHOLD_HINT
+    assert "5 %" in ru.HELP_THRESHOLD_BODY
+    assert "по умолчанию" in ru.SETTINGS_THRESHOLD_HINT.lower()
+    assert "сервер" in ru.SETTINGS_THRESHOLD_HINT.lower()
+    assert "сервер" in ru.HELP_THRESHOLD_BODY.lower()
+
+
 def test_filters_keys_exist() -> None:
     required = {
         "FILTERS_LOADING",
@@ -163,6 +171,14 @@ def test_filters_keys_exist() -> None:
         "CONFIRM_DELETE_FILTER_TITLE",
     }
     assert required <= set(ru.TEXT_KEYS)
+
+
+def test_filter_copy_states_the_all_words_rule() -> None:
+    for text in (ru.HELP_FILTERS_BODY, ru.FILTER_PHRASE_HINT):
+        lowered = text.lower()
+        assert "все её слова" in lowered
+        assert "регистр" in lowered
+        assert "порядок" in lowered
 
 
 def test_readonly_keys_exist_and_are_russian() -> None:
